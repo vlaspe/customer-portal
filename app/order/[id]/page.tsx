@@ -1,6 +1,6 @@
 import { orders } from "../../../data/orders";
 
-export default function OrderPage({ params }) {
+export default function OrderPage({ params }: { params: { id: string } }) {
   const order = orders.find((o) => o.id === params.id);
 
   if (!order) {
