@@ -10,7 +10,7 @@ type Order = any;
 export default function Home() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
-  const [orders, setOrders] = useState([]);
+ const [orders, setOrders] = useState<any[]>([]);
 
   useEffect(() => {
     const load = async () => {
