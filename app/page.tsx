@@ -9,8 +9,9 @@ type Order = any;
 
 export default function Home() {
   const router = useRouter();
+
   const [user, setUser] = useState<any>(null);
- const [orders, setOrders] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
 
   useEffect(() => {
     const load = async () => {
@@ -32,14 +33,15 @@ export default function Home() {
     };
 
     load();
-  }, []);
+  }, [router]);
 
   const logout = async () => {
     await supabase.auth.signOut();
     router.push("/login");
   };
 
-  const getStatusStyle = (status) => {
+  // ✅ FIX: explicit type
+  const getStatusStyle = (status: string) => {
     switch (status) {
       case "Quote sent":
         return { color: "#b45309", background: "#fef3c7" };
@@ -58,7 +60,8 @@ export default function Home() {
     }
   };
 
-  const formatDate = (date) => {
+  // ✅ FIX: explicit type
+  const formatDate = (date: string | null | undefined) => {
     if (!date) return "-";
     return new Date(date).toLocaleDateString("en-GB");
   };
@@ -67,7 +70,7 @@ export default function Home() {
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", fontFamily: "sans-serif" }}>
-
+      
       {/* SIDEBAR */}
       <aside
         style={{
@@ -79,9 +82,9 @@ export default function Home() {
       >
         <h2 style={{ marginBottom: 20 }}>Portal</h2>
 
-        <p style={{ opacity: 0.7 }}>Dashboard</p>
-        <p style={{ opacity: 0.7 }}>Orders</p>
-        <p style={{ opacity: 0.7 }}>Profile</p>
+        <p style={{ opacity: 0.7, cursor: "pointer" }}>Dashboard</p>
+        <p style={{ opacity: 0.7, cursor: "pointer" }}>Orders</p>
+        <p style={{ opacity: 0.7, cursor: "pointer" }}>Profile</p>
 
         <button
           onClick={logout}
@@ -143,9 +146,8 @@ export default function Home() {
               </thead>
 
               <tbody>
-                {orders.map((o) => (
+                {orders.map((o: any) => (
                   <tr key={o.id}>
-
                     <td style={{ padding: 10 }}>#{o.id}</td>
 
                     <td style={{ padding: 10 }}>
@@ -163,19 +165,9 @@ export default function Home() {
                     </td>
 
                     <td style={{ padding: 10 }}>{o.price}€</td>
-
-                    <td style={{ padding: 10 }}>
-                      {formatDate(o.quote_sent_at)}
-                    </td>
-
-                    <td style={{ padding: 10 }}>
-                      {formatDate(o.ordered_at)}
-                    </td>
-
-                    <td style={{ padding: 10 }}>
-                      {formatDate(o.delivered_at)}
-                    </td>
-
+                    <td style={{ padding: 10 }}>{formatDate(o.quote_sent_at)}</td>
+                    <td style={{ padding: 10 }}>{formatDate(o.ordered_at)}</td>
+                    <td style={{ padding: 10 }}>{formatDate(o.delivered_at)}</td>
                   </tr>
                 ))}
               </tbody>
