@@ -82,9 +82,7 @@ export default function Home() {
       >
         <h2 style={{ marginBottom: 20 }}>Portal</h2>
 
-        <p style={{ opacity: 0.7, cursor: "pointer" }}>Dashboard</p>
-        <p style={{ opacity: 0.7, cursor: "pointer" }}>Orders</p>
-        <p style={{ opacity: 0.7, cursor: "pointer" }}>Profile</p>
+
 
         <button
           onClick={logout}
