@@ -4,9 +4,12 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useRouter } from "next/navigation";
 
+type User = any;
+type Order = any;
+
 export default function Home() {
   const router = useRouter();
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<any>(null);
   const [orders, setOrders] = useState([]);
 
   useEffect(() => {
