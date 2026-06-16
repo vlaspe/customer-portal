@@ -78,9 +78,7 @@ export default function Home() {
     setOpenId(next);
 
     if (next !== null) {
-      await loadFiles(id);
-      console.log("FILES RESPONSE:", data, error);
-      
+      await loadFiles(id);      
     }
   };
   
