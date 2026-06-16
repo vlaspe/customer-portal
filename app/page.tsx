@@ -1,14 +1,31 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Fragment } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useRouter } from "next/navigation";
+
+type FileType =
+  | "quotation"
+  | "purchase_order"
+  | "proforma_invoice"
+  | "tax_invoice"
+  | "delivery_note";
+
+const FILE_TYPES: { key: FileType; label: string; icon: string }[] = [
+  { key: "quotation", label: "Quotation", icon: "📄" },
+  { key: "purchase_order", label: "Purchase Order", icon: "📦" },
+  { key: "proforma_invoice", label: "Proforma Invoice", icon: "💰" },
+  { key: "tax_invoice", label: "Tax Invoice", icon: "🧾" },
+  { key: "delivery_note", label: "Delivery Note", icon: "🚚" },
+];
 
 export default function Home() {
   const router = useRouter();
 
   const [user, setUser] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
+  const [openId, setOpenId] = useState<number | null>(null);
+  const [files, setFiles] = useState<any[]>([]);
 
   useEffect(() => {
     const load = async () => {
@@ -31,6 +48,53 @@ export default function Home() {
 
     load();
   }, [router]);
+
+  const loadFiles = async (orderId: number) => {
+    const { data } = await supabase
+      .from("order_files")
+      .select("*")
+      .eq("order_id", orderId);
+
+    setFiles(data || []);
+  };
+
+  const toggleRow = async (id: number) => {
+    if (openId === id) {
+      setOpenId(null);
+      return;
+    }
+
+    setOpenId(id);
+    await loadFiles(id);
+  };
+
+  const uploadFile = async (orderId: number, type: FileType, file: File) => {
+    const filePath = `${orderId}/${type}/${Date.now()}-${file.name}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("order-files")
+      .upload(filePath, file);
+
+    if (uploadError) return alert(uploadError.message);
+
+    const { data: publicUrl } = supabase.storage
+      .from("order-files")
+      .getPublicUrl(filePath);
+
+    await supabase.from("order_files").insert({
+      order_id: orderId,
+      type,
+      file_url: publicUrl.publicUrl,
+      file_name: file.name,
+    });
+
+    await loadFiles(orderId);
+  };
+
+  const getFilesCount = (orderId: number, type: FileType) => {
+    return files.filter((f) => f.order_id === orderId && f.type === type)
+      .length;
+  };
 
   const logout = async () => {
     await supabase.auth.signOut();
@@ -62,7 +126,6 @@ export default function Home() {
   return (
     <>
       <div className="layout">
-        {/* HEADER / SIDEBAR (desktop) */}
         <aside className="sidebar">
           <h2>Portal</h2>
 
@@ -71,7 +134,6 @@ export default function Home() {
           </button>
         </aside>
 
-        {/* MAIN */}
         <main className="main">
           <div className="header">
             <h1>Customer Dashboard</h1>
@@ -99,23 +161,81 @@ export default function Home() {
 
                   <tbody>
                     {orders.map((o: any) => (
-                      <tr key={o.id}>
-                        <td>#{o.id}</td>
+                      <Fragment key={o.id}>
+                        <tr
+                          onClick={() => toggleRow(o.id)}
+                          style={{ cursor: "pointer" }}
+                        >
+                          <td>
+                            <span style={{ marginRight: 8 }}>▶</span>
+                            #{o.id}
+                          </td>
 
-                        <td>
-                          <span
-                            className="status"
-                            style={getStatusStyle(o.status)}
-                          >
-                            {o.status}
-                          </span>
-                        </td>
+                          <td>
+                            <span
+                              className="status"
+                              style={getStatusStyle(o.status)}
+                            >
+                              {o.status}
+                            </span>
+                          </td>
 
-                        <td>{o.price}€</td>
-                        <td>{formatDate(o.quote_sent_at)}</td>
-                        <td>{formatDate(o.ordered_at)}</td>
-                        <td>{formatDate(o.delivered_at)}</td>
-                      </tr>
+                          <td>{o.price}€</td>
+                          <td>{formatDate(o.quote_sent_at)}</td>
+                          <td>{formatDate(o.ordered_at)}</td>
+                          <td>{formatDate(o.delivered_at)}</td>
+                        </tr>
+
+                        {openId === o.id && (
+                          <tr>
+                            <td colSpan={6}>
+                              <div className="actions">
+                                {FILE_TYPES.map((t) => {
+                                  const count = getFilesCount(o.id, t.key);
+
+                                  return (
+                                    <div key={t.key} className="docBox">
+                                      <label>
+                                        {t.icon} {t.label} ({count})
+                                      </label>
+
+                                      <input
+                                        type="file"
+                                        onChange={(e) => {
+                                          if (e.target.files?.[0]) {
+                                            uploadFile(
+                                              o.id,
+                                              t.key,
+                                              e.target.files[0]
+                                            );
+                                          }
+                                        }}
+                                      />
+
+                                      {count > 0 &&
+                                        files
+                                          .filter(
+                                            (f) =>
+                                              f.order_id === o.id &&
+                                              f.type === t.key
+                                          )
+                                          .map((f) => (
+                                            <a
+                                              key={f.id}
+                                              href={f.file_url}
+                                              target="_blank"
+                                            >
+                                              Download
+                                            </a>
+                                          ))}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
                     ))}
                   </tbody>
                 </table>
@@ -125,7 +245,6 @@ export default function Home() {
         </main>
       </div>
 
-      {/* 🎨 STYLES */}
       <style jsx>{`
         .layout {
           display: flex;
@@ -133,16 +252,11 @@ export default function Home() {
           font-family: sans-serif;
         }
 
-        /* DESKTOP SIDEBAR */
         .sidebar {
           width: 220px;
           background: #111;
           color: white;
           padding: 20px;
-        }
-
-        .sidebar h2 {
-          margin-bottom: 20px;
         }
 
         .logout {
@@ -152,7 +266,6 @@ export default function Home() {
           background: #333;
           color: white;
           border-radius: 6px;
-          cursor: pointer;
         }
 
         .main {
@@ -164,7 +277,6 @@ export default function Home() {
         .header {
           display: flex;
           justify-content: space-between;
-          align-items: center;
           margin-bottom: 20px;
         }
 
@@ -172,7 +284,6 @@ export default function Home() {
           background: white;
           padding: 20px;
           border-radius: 12px;
-          box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
         }
 
         table {
@@ -191,58 +302,46 @@ export default function Home() {
           padding: 4px 10px;
           border-radius: 20px;
           font-size: 12px;
-          font-weight: 600;
-          display: inline-block;
         }
 
-        .tableWrap {
-          overflow-x: auto;
+        .actions {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 15px;
         }
 
-        /* 📱 MOBILE FIX */
+        .docBox {
+          display: flex;
+          flex-direction: column;
+          gap: 5px;
+          padding: 10px;
+          background: #f8fafc;
+          border-radius: 10px;
+        }
+
+        .docBox a {
+          font-size: 12px;
+          color: blue;
+        }
+
         @media (max-width: 768px) {
           .layout {
             flex-direction: column;
           }
 
-          /* 🔥 sidebar sa zmení na top bar */
           .sidebar {
             width: 100%;
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            padding: 12px 15px;
-          }
-
-          .sidebar h2 {
-            margin-bottom: 0;
-            font-size: 16px;
-          }
-
-          .logout {
-            width: auto;
-            padding: 8px 12px;
-            font-size: 12px;
+            padding: 12px;
           }
 
           .main {
             padding: 15px;
           }
 
-          .header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 10px;
-          }
-
-          th,
-          td {
-            font-size: 12px;
-            padding: 6px;
-          }
-
-          .card {
-            padding: 12px;
+          .actions {
+            grid-template-columns: 1fr;
           }
         }
       `}</style>
