@@ -24,71 +24,124 @@ export default function Login() {
   };
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "#f5f5f5",
-        fontFamily: "sans-serif",
-      }}
-    >
-      <div
-        style={{
-          width: 350,
-          padding: 30,
-          borderRadius: 12,
-          background: "white",
-          boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
-        }}
-      >
-        <h1 style={{ marginBottom: 20, textAlign: "center" }}>
-          Customer Login
-        </h1>
+    <>
+      <main className="bg">
+        <div className="card">
+          <h1>Customer portal</h1>
+          <p className="subtitle">Sign in to your account</p>
 
-        <input
-          placeholder="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          style={{
-            width: "100%",
-            padding: 10,
-            marginBottom: 10,
-            borderRadius: 8,
-            border: "1px solid #ddd",
-          }}
-        />
+          <input
+            placeholder="Email address"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
 
-        <input
-          placeholder="password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          style={{
-            width: "100%",
-            padding: 10,
-            marginBottom: 15,
-            borderRadius: 8,
-            border: "1px solid #ddd",
-          }}
-        />
+          <input
+            placeholder="Password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
 
-        <button
-          onClick={signIn}
-          style={{
-            width: "100%",
-            padding: 10,
-            borderRadius: 8,
-            border: "none",
-            background: "#111",
-            color: "white",
-            cursor: "pointer",
-          }}
-        >
-          Sign In
-        </button>
-      </div>
-    </main>
+          <button onClick={signIn}>Sign in</button>
+        </div>
+      </main>
+
+      <style jsx>{`
+        .bg {
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-family: sans-serif;
+
+          /* 🔥 jemný profesionálny background */
+          background: #f6f7fb;
+          padding: 20px;
+        }
+
+        .card {
+          width: 360px;
+          padding: 32px;
+          border-radius: 14px;
+
+          background: white;
+          border: 1px solid #e8e8ee;
+
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+
+          text-align: left;
+        }
+
+        h1 {
+          font-size: 22px;
+          margin-bottom: 6px;
+          color: #111827;
+        }
+
+        .subtitle {
+          font-size: 14px;
+          color: #6b7280;
+          margin-bottom: 20px;
+        }
+
+        input {
+          width: 100%;
+          padding: 12px 14px;
+          margin-bottom: 12px;
+
+          border-radius: 10px;
+          border: 1px solid #e5e7eb;
+
+          font-size: 14px;
+          outline: none;
+
+          transition: all 0.2s ease;
+          background: #fafafa;
+        }
+
+        input:focus {
+          border-color: #c7c9d1;
+          background: white;
+        }
+
+        button {
+          width: 100%;
+          padding: 12px 14px;
+
+          border-radius: 10px;
+          border: none;
+
+          background: #111827;
+          color: white;
+
+          font-weight: 500;
+          cursor: pointer;
+
+          transition: 0.2s ease;
+        }
+
+        button:hover {
+          background: #1f2937;
+        }
+
+        button:active {
+          transform: scale(0.98);
+        }
+
+        /* 📱 MOBILE */
+        @media (max-width: 768px) {
+          .card {
+            width: 100%;
+            max-width: 340px;
+            padding: 24px;
+          }
+
+          h1 {
+            font-size: 20px;
+          }
+        }
+      `}</style>
+    </>
   );
 }

@@ -4,9 +4,6 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useRouter } from "next/navigation";
 
-type User = any;
-type Order = any;
-
 export default function Home() {
   const router = useRouter();
 
@@ -40,27 +37,21 @@ export default function Home() {
     router.push("/login");
   };
 
-  // ✅ FIX: explicit type
   const getStatusStyle = (status: string) => {
     switch (status) {
       case "Quote sent":
         return { color: "#b45309", background: "#fef3c7" };
-
       case "Ordered":
         return { color: "#1d4ed8", background: "#dbeafe" };
-
       case "In production":
         return { color: "#9a3412", background: "#ffedd5" };
-
       case "Delivered":
         return { color: "#065f46", background: "#d1fae5" };
-
       default:
         return { color: "#374151", background: "#e5e7eb" };
     }
   };
 
-  // ✅ FIX: explicit type
   const formatDate = (date: string | null | undefined) => {
     if (!date) return "-";
     return new Date(date).toLocaleDateString("en-GB");
@@ -69,110 +60,192 @@ export default function Home() {
   if (!user) return <p>Loading...</p>;
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", fontFamily: "sans-serif" }}>
-      
-      {/* SIDEBAR */}
-      <aside
-        style={{
-          width: 220,
-          background: "#111",
-          color: "white",
-          padding: 20,
-        }}
-      >
-        <h2 style={{ marginBottom: 20 }}>Portal</h2>
+    <>
+      <div className="layout">
+        {/* HEADER / SIDEBAR (desktop) */}
+        <aside className="sidebar">
+          <h2>Portal</h2>
 
+          <button onClick={logout} className="logout">
+            Logout
+          </button>
+        </aside>
 
+        {/* MAIN */}
+        <main className="main">
+          <div className="header">
+            <h1>Customer Dashboard</h1>
+            <p>{user.email}</p>
+          </div>
 
-        <button
-          onClick={logout}
-          style={{
-            marginTop: 20,
-            width: "100%",
-            padding: 10,
-            border: "none",
-            background: "#333",
-            color: "white",
-            cursor: "pointer",
-            borderRadius: 6,
-          }}
-        >
-          Logout
-        </button>
-      </aside>
+          <div className="card">
+            <h2 style={{ marginBottom: 15 }}>My Orders</h2>
 
-      {/* MAIN CONTENT */}
-      <main style={{ flex: 1, padding: 30, background: "#f5f5f5" }}>
+            {orders.length === 0 ? (
+              <p>No orders found</p>
+            ) : (
+              <div className="tableWrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Status</th>
+                      <th>Price</th>
+                      <th>Quote</th>
+                      <th>Ordered</th>
+                      <th>Delivered</th>
+                    </tr>
+                  </thead>
 
-        {/* HEADER */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            marginBottom: 20,
-            alignItems: "center",
-          }}
-        >
-          <h1>Customer Dashboard</h1>
-          <p>{user.email}</p>
-        </div>
+                  <tbody>
+                    {orders.map((o: any) => (
+                      <tr key={o.id}>
+                        <td>#{o.id}</td>
 
-        {/* ORDERS */}
-        <div
-          style={{
-            background: "white",
-            padding: 20,
-            borderRadius: 12,
-            boxShadow: "0 5px 15px rgba(0,0,0,0.05)",
-          }}
-        >
-          <h2 style={{ marginBottom: 15 }}>My Orders</h2>
+                        <td>
+                          <span
+                            className="status"
+                            style={getStatusStyle(o.status)}
+                          >
+                            {o.status}
+                          </span>
+                        </td>
 
-          {orders.length === 0 ? (
-            <p>No orders found</p>
-          ) : (
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr>
-                  <th style={{ textAlign: "left", padding: 10 }}>ID</th>
-                  <th style={{ textAlign: "left", padding: 10 }}>Status</th>
-                  <th style={{ textAlign: "left", padding: 10 }}>Price</th>
-                  <th style={{ textAlign: "left", padding: 10 }}>Quote</th>
-                  <th style={{ textAlign: "left", padding: 10 }}>Ordered</th>
-                  <th style={{ textAlign: "left", padding: 10 }}>Delivered</th>
-                </tr>
-              </thead>
+                        <td>{o.price}€</td>
+                        <td>{formatDate(o.quote_sent_at)}</td>
+                        <td>{formatDate(o.ordered_at)}</td>
+                        <td>{formatDate(o.delivered_at)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
 
-              <tbody>
-                {orders.map((o: any) => (
-                  <tr key={o.id}>
-                    <td style={{ padding: 10 }}>#{o.id}</td>
+      {/* 🎨 STYLES */}
+      <style jsx>{`
+        .layout {
+          display: flex;
+          min-height: 100vh;
+          font-family: sans-serif;
+        }
 
-                    <td style={{ padding: 10 }}>
-                      <span
-                        style={{
-                          padding: "4px 10px",
-                          borderRadius: 20,
-                          fontSize: 12,
-                          fontWeight: 600,
-                          ...getStatusStyle(o.status),
-                        }}
-                      >
-                        {o.status}
-                      </span>
-                    </td>
+        /* DESKTOP SIDEBAR */
+        .sidebar {
+          width: 220px;
+          background: #111;
+          color: white;
+          padding: 20px;
+        }
 
-                    <td style={{ padding: 10 }}>{o.price}€</td>
-                    <td style={{ padding: 10 }}>{formatDate(o.quote_sent_at)}</td>
-                    <td style={{ padding: 10 }}>{formatDate(o.ordered_at)}</td>
-                    <td style={{ padding: 10 }}>{formatDate(o.delivered_at)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </main>
-    </div>
+        .sidebar h2 {
+          margin-bottom: 20px;
+        }
+
+        .logout {
+          width: 100%;
+          padding: 10px;
+          border: none;
+          background: #333;
+          color: white;
+          border-radius: 6px;
+          cursor: pointer;
+        }
+
+        .main {
+          flex: 1;
+          padding: 30px;
+          background: #f5f5f5;
+        }
+
+        .header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 20px;
+        }
+
+        .card {
+          background: white;
+          padding: 20px;
+          border-radius: 12px;
+          box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        table {
+          width: 100%;
+          border-collapse: collapse;
+        }
+
+        th,
+        td {
+          text-align: left;
+          padding: 10px;
+          white-space: nowrap;
+        }
+
+        .status {
+          padding: 4px 10px;
+          border-radius: 20px;
+          font-size: 12px;
+          font-weight: 600;
+          display: inline-block;
+        }
+
+        .tableWrap {
+          overflow-x: auto;
+        }
+
+        /* 📱 MOBILE FIX */
+        @media (max-width: 768px) {
+          .layout {
+            flex-direction: column;
+          }
+
+          /* 🔥 sidebar sa zmení na top bar */
+          .sidebar {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+          }
+
+          .sidebar h2 {
+            margin-bottom: 0;
+            font-size: 16px;
+          }
+
+          .logout {
+            width: auto;
+            padding: 8px 12px;
+            font-size: 12px;
+          }
+
+          .main {
+            padding: 15px;
+          }
+
+          .header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+          }
+
+          th,
+          td {
+            font-size: 12px;
+            padding: 6px;
+          }
+
+          .card {
+            padding: 12px;
+          }
+        }
+      `}</style>
+    </>
   );
 }
