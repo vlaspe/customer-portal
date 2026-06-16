@@ -55,15 +55,11 @@ export default function Home() {
     router.push("/login");
   };
 
-  // 🔥 FIX: vždy fresh load + string fix
   const loadFiles = async (orderId: number | string) => {
     const { data, error } = await supabase
       .from("order_files")
       .select("*")
       .eq("order_id", String(orderId));
-
-      console.log("ORDER ID:", orderId);
-      console.log("FILES:", data);
 
     if (error) {
       console.log("LOAD FILES ERROR:", error);
@@ -81,10 +77,9 @@ export default function Home() {
     setOpenId(next);
 
     if (next !== null) {
-      await loadFiles(id);      
+      await loadFiles(id);
     }
   };
-  
 
   const uploadFile = async (orderId: number, type: FileType, file: File) => {
     const filePath = `${orderId}/${type}/${Date.now()}-${file.name}`;
@@ -103,7 +98,7 @@ export default function Home() {
       .getPublicUrl(filePath);
 
     const { error: dbError } = await supabase.from("order_files").insert({
-      order_id: String(orderId),   // 🔥 FIX STRING
+      order_id: String(orderId),
       type,
       file_url: data.publicUrl,
       file_name: file.name,
@@ -112,15 +107,13 @@ export default function Home() {
     if (dbError) {
       console.log("DB ERROR:", dbError);
       return;
-      
     }
 
-    // 🔥 force refresh
     await loadFiles(orderId);
   };
 
   const getFiles = (orderId: number | string) =>
-  filesByOrder[String(orderId)] || [];
+    filesByOrder[String(orderId)] || [];
 
   const getFilesCount = (orderId: number | string, type: FileType) =>
     getFiles(orderId).filter((f) => f.type === type).length;
@@ -156,7 +149,14 @@ export default function Home() {
       <main className="main">
         <div className="header">
           <h1>Customer Dashboard</h1>
-          <p>{user.email}</p>
+
+          <div className="headerRight">
+            <p>{user.email}</p>
+
+            <button onClick={logout} className="logoutMobile">
+              Logout
+            </button>
+          </div>
         </div>
 
         <div className="card">
@@ -251,16 +251,15 @@ export default function Home() {
           </div>
         </div>
 
-        
       </main>
 
       <style jsx>{`
+        .arrow {
+          display: inline-block;
+          transition: transform 0.2s ease;
+          margin-right: 6px;
+        }
 
-      .arrow {
-  display: inline-block;
-  transition: transform 0.2s ease;
-  margin-right: 6px;
-}
         .layout {
           display: flex;
           min-height: 100vh;
@@ -293,6 +292,22 @@ export default function Home() {
           display: flex;
           justify-content: space-between;
           margin-bottom: 20px;
+        }
+
+        .headerRight {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .logoutMobile {
+          display: none;
+          padding: 6px 10px;
+          border: none;
+          background: #111;
+          color: white;
+          border-radius: 6px;
+          font-size: 12px;
         }
 
         .card {
@@ -376,10 +391,12 @@ export default function Home() {
             font-size: 12px;
             padding: 6px;
           }
+
+          .logoutMobile {
+            display: block;
+          }
         }
       `}</style>
     </div>
   );
-
-  
 }
