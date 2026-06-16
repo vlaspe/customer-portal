@@ -60,7 +60,10 @@ export default function Home() {
     const { data, error } = await supabase
       .from("order_files")
       .select("*")
-      .eq("order_id", orderId);
+      .eq("order_id", String(orderId));
+
+      console.log("ORDER ID:", orderId);
+      console.log("FILES:", data);
 
     if (error) {
       console.log("LOAD FILES ERROR:", error);
@@ -69,7 +72,7 @@ export default function Home() {
 
     setFilesByOrder((prev) => ({
       ...prev,
-      [Number(orderId)]: data || [],
+      [String(orderId)]: data || [],
     }));
   };
 
@@ -116,9 +119,10 @@ export default function Home() {
     await loadFiles(orderId);
   };
 
-  const getFiles = (orderId: number) => filesByOrder[orderId] || [];
+  const getFiles = (orderId: number | string) =>
+  filesByOrder[String(orderId)] || [];
 
-  const getFilesCount = (orderId: number, type: FileType) =>
+  const getFilesCount = (orderId: number | string, type: FileType) =>
     getFiles(orderId).filter((f) => f.type === type).length;
 
   const getStatusStyle = (status: string) => {
