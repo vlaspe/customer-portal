@@ -25,7 +25,9 @@ export default function Home() {
   const [user, setUser] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
   const [openId, setOpenId] = useState<number | null>(null);
-  const [files, setFiles] = useState<any[]>([]);
+
+  // 🔥 FIX: files per order (nie globálne mixovanie)
+  const [filesByOrder, setFilesByOrder] = useState<Record<number, any[]>>({});
 
   useEffect(() => {
     const load = async () => {
@@ -49,57 +51,59 @@ export default function Home() {
     load();
   }, [router]);
 
+  const logout = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
+
   const loadFiles = async (orderId: number) => {
     const { data } = await supabase
       .from("order_files")
       .select("*")
       .eq("order_id", orderId);
 
-    setFiles(data || []);
+    setFilesByOrder((prev) => ({
+      ...prev,
+      [orderId]: data || [],
+    }));
   };
 
   const toggleRow = async (id: number) => {
-    if (openId === id) {
-      setOpenId(null);
-      return;
-    }
+    const next = openId === id ? null : id;
+    setOpenId(next);
 
-    setOpenId(id);
-    await loadFiles(id);
+    if (next !== null && !filesByOrder[id]) {
+      await loadFiles(id);
+    }
   };
 
   const uploadFile = async (orderId: number, type: FileType, file: File) => {
     const filePath = `${orderId}/${type}/${Date.now()}-${file.name}`;
 
-    const { error: uploadError } = await supabase.storage
-      .from("order-files")
+    const { error } = await supabase.storage
+      .from("order_files")
       .upload(filePath, file);
 
-    if (uploadError) return alert(uploadError.message);
+    if (error) return alert(error.message);
 
-    const { data: publicUrl } = supabase.storage
-      .from("order-files")
+    const { data } = supabase.storage
+      .from("order_files")
       .getPublicUrl(filePath);
 
     await supabase.from("order_files").insert({
       order_id: orderId,
       type,
-      file_url: publicUrl.publicUrl,
+      file_url: data.publicUrl,
       file_name: file.name,
     });
 
     await loadFiles(orderId);
   };
 
-  const getFilesCount = (orderId: number, type: FileType) => {
-    return files.filter((f) => f.order_id === orderId && f.type === type)
-      .length;
-  };
+  const getFiles = (orderId: number) => filesByOrder[orderId] || [];
 
-  const logout = async () => {
-    await supabase.auth.signOut();
-    router.push("/login");
-  };
+  const getFilesCount = (orderId: number, type: FileType) =>
+    getFiles(orderId).filter((f) => f.type === type).length;
 
   const getStatusStyle = (status: string) => {
     switch (status) {
@@ -124,126 +128,123 @@ export default function Home() {
   if (!user) return <p>Loading...</p>;
 
   return (
-    <>
-      <div className="layout">
-        <aside className="sidebar">
-          <h2>Portal</h2>
+    <div className="layout">
 
-          <button onClick={logout} className="logout">
-            Logout
-          </button>
-        </aside>
+      {/* ❌ SIDEBAR SKRYTÝ NA MOBILE */}
+      <aside className="sidebar">
+        <h2>Portal</h2>
+        <button onClick={logout} className="logout">
+          Logout
+        </button>
+      </aside>
 
-        <main className="main">
-          <div className="header">
-            <h1>Customer Dashboard</h1>
-            <p>{user.email}</p>
-          </div>
+      <main className="main">
+        <div className="header">
+          <h1>Customer Dashboard</h1>
+          <p>{user.email}</p>
+        </div>
 
-          <div className="card">
-            <h2 style={{ marginBottom: 15 }}>My Orders</h2>
+        <div className="card">
+          <h2>My Orders</h2>
 
-            {orders.length === 0 ? (
-              <p>No orders found</p>
-            ) : (
-              <div className="tableWrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>Status</th>
-                      <th>Price</th>
-                      <th>Quote</th>
-                      <th>Ordered</th>
-                      <th>Delivered</th>
-                    </tr>
-                  </thead>
+          <div className="tableWrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Status</th>
+                  <th>Price</th>
+                  <th>Quote</th>
+                  <th>Ordered</th>
+                  <th>Delivered</th>
+                </tr>
+              </thead>
 
-                  <tbody>
-                    {orders.map((o: any) => (
-                      <Fragment key={o.id}>
-                        <tr
-                          onClick={() => toggleRow(o.id)}
-                          style={{ cursor: "pointer" }}
-                        >
-                          <td>
-                            <span style={{ marginRight: 8 }}>▶</span>
-                            #{o.id}
-                          </td>
+              <tbody>
+                {orders.map((o) => {
+                  const open = openId === o.id;
 
-                          <td>
-                            <span
-                              className="status"
-                              style={getStatusStyle(o.status)}
-                            >
-                              {o.status}
-                            </span>
-                          </td>
+                  return (
+                    <Fragment key={o.id}>
+                      <tr onClick={() => toggleRow(o.id)} className="row">
+                        <td className="idCell">
+                          <span className={`arrow ${open ? "open" : ""}`}>
+                            ▶
+                          </span>
+                          #{o.id}
+                        </td>
 
-                          <td>{o.price}€</td>
-                          <td>{formatDate(o.quote_sent_at)}</td>
-                          <td>{formatDate(o.ordered_at)}</td>
-                          <td>{formatDate(o.delivered_at)}</td>
-                        </tr>
+                        <td>
+                          <span
+                            className="status"
+                            style={getStatusStyle(o.status)}
+                          >
+                            {o.status}
+                          </span>
+                        </td>
 
-                        {openId === o.id && (
-                          <tr>
-                            <td colSpan={6}>
-                              <div className="actions">
-                                {FILE_TYPES.map((t) => {
-                                  const count = getFilesCount(o.id, t.key);
+                        <td>{o.price}€</td>
+                        <td>{formatDate(o.quote_sent_at)}</td>
+                        <td>{formatDate(o.ordered_at)}</td>
+                        <td>{formatDate(o.delivered_at)}</td>
+                      </tr>
 
-                                  return (
-                                    <div key={t.key} className="docBox">
-                                      <label>
+                      {open && (
+                        <tr>
+                          <td colSpan={6}>
+                            <div className="actions">
+
+                              {FILE_TYPES.map((t) => {
+                                const count = getFilesCount(o.id, t.key);
+
+                                return (
+                                  <div key={t.key} className="docBox">
+                                    <div className="docTop">
+                                      <span>
                                         {t.icon} {t.label} ({count})
+                                      </span>
+
+                                      <label className="uploadBtn">
+                                        Upload
+                                        <input
+                                          type="file"
+                                          hidden
+                                          onChange={(e) => {
+                                            if (e.target.files?.[0]) {
+                                              uploadFile(
+                                                o.id,
+                                                t.key,
+                                                e.target.files[0]
+                                              );
+                                            }
+                                          }}
+                                        />
                                       </label>
-
-                                      <input
-                                        type="file"
-                                        onChange={(e) => {
-                                          if (e.target.files?.[0]) {
-                                            uploadFile(
-                                              o.id,
-                                              t.key,
-                                              e.target.files[0]
-                                            );
-                                          }
-                                        }}
-                                      />
-
-                                      {count > 0 &&
-                                        files
-                                          .filter(
-                                            (f) =>
-                                              f.order_id === o.id &&
-                                              f.type === t.key
-                                          )
-                                          .map((f) => (
-                                            <a
-                                              key={f.id}
-                                              href={f.file_url}
-                                              target="_blank"
-                                            >
-                                              Download
-                                            </a>
-                                          ))}
                                     </div>
-                                  );
-                                })}
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </Fragment>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+
+                                    {getFiles(o.id)
+                                      .filter((f) => f.type === t.key)
+                                      .map((f) => (
+                                        <a key={f.id} href={f.file_url} target="_blank">
+                                          Download
+                                        </a>
+                                      ))}
+                                  </div>
+                                );
+                              })}
+
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-        </main>
-      </div>
+        </div>
+      </main>
 
       <style jsx>{`
         .layout {
@@ -293,9 +294,27 @@ export default function Home() {
 
         th,
         td {
-          text-align: left;
           padding: 10px;
           white-space: nowrap;
+          text-align: left;
+        }
+
+        .row {
+          cursor: pointer;
+        }
+
+        .idCell {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+        }
+
+        .arrow {
+          transition: 0.2s;
+        }
+
+        .arrow.open {
+          transform: rotate(90deg);
         }
 
         .status {
@@ -307,44 +326,67 @@ export default function Home() {
         .actions {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
-          gap: 15px;
+          gap: 12px;
         }
 
         .docBox {
+          background: #f8fafc;
+          padding: 10px;
+          border-radius: 10px;
           display: flex;
           flex-direction: column;
-          gap: 5px;
-          padding: 10px;
-          background: #f8fafc;
-          border-radius: 10px;
+          gap: 6px;
         }
 
-        .docBox a {
+        .docTop {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .uploadBtn {
+          background: #111;
+          color: white;
+          padding: 4px 8px;
+          border-radius: 6px;
+          font-size: 12px;
+          cursor: pointer;
+        }
+
+        a {
           font-size: 12px;
           color: blue;
         }
 
+        /* 📱 MOBILE = bez sidebaru */
         @media (max-width: 768px) {
           .layout {
             flex-direction: column;
           }
 
           .sidebar {
-            width: 100%;
-            display: flex;
-            justify-content: space-between;
-            padding: 12px;
+            display: none;
           }
 
           .main {
-            padding: 15px;
+            padding: 12px;
+          }
+
+          .card {
+            padding: 10px;
           }
 
           .actions {
             grid-template-columns: 1fr;
           }
+
+          th,
+          td {
+            font-size: 12px;
+            padding: 6px;
+          }
         }
       `}</style>
-    </>
+    </div>
   );
 }
