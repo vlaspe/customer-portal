@@ -26,7 +26,7 @@ export default function Home() {
   const [orders, setOrders] = useState<any[]>([]);
   const [openId, setOpenId] = useState<number | null>(null);
 
-  const [filesByOrder, setFilesByOrder] = useState<Record<number, any[]>>({});
+  const [filesByOrder, setFilesByOrder] = useState<Record<string, any[]>>({});
 
   useEffect(() => {
     const load = async () => {
