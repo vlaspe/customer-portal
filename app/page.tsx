@@ -26,7 +26,6 @@ export default function Home() {
   const [orders, setOrders] = useState<any[]>([]);
   const [openId, setOpenId] = useState<number | null>(null);
 
-  // 🔥 FIX: files per order (nie globálne mixovanie)
   const [filesByOrder, setFilesByOrder] = useState<Record<number, any[]>>({});
 
   useEffect(() => {
@@ -56,15 +55,21 @@ export default function Home() {
     router.push("/login");
   };
 
-  const loadFiles = async (orderId: number) => {
-    const { data } = await supabase
+  // 🔥 FIX: vždy fresh load + string fix
+  const loadFiles = async (orderId: number | string) => {
+    const { data, error } = await supabase
       .from("order_files")
       .select("*")
       .eq("order_id", orderId);
 
+    if (error) {
+      console.log("LOAD FILES ERROR:", error);
+      return;
+    }
+
     setFilesByOrder((prev) => ({
       ...prev,
-      [orderId]: data || [],
+      [Number(orderId)]: data || [],
     }));
   };
 
@@ -72,31 +77,44 @@ export default function Home() {
     const next = openId === id ? null : id;
     setOpenId(next);
 
-    if (next !== null && !filesByOrder[id]) {
+    if (next !== null) {
       await loadFiles(id);
+      console.log("FILES RESPONSE:", data, error);
+      
     }
   };
+  
 
   const uploadFile = async (orderId: number, type: FileType, file: File) => {
     const filePath = `${orderId}/${type}/${Date.now()}-${file.name}`;
 
-    const { error } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from("order_files")
       .upload(filePath, file);
 
-    if (error) return alert(error.message);
+    if (uploadError) {
+      console.log(uploadError);
+      return alert(uploadError.message);
+    }
 
     const { data } = supabase.storage
       .from("order_files")
       .getPublicUrl(filePath);
 
-    await supabase.from("order_files").insert({
-      order_id: orderId,
+    const { error: dbError } = await supabase.from("order_files").insert({
+      order_id: String(orderId),   // 🔥 FIX STRING
       type,
       file_url: data.publicUrl,
       file_name: file.name,
     });
 
+    if (dbError) {
+      console.log("DB ERROR:", dbError);
+      return;
+      
+    }
+
+    // 🔥 force refresh
     await loadFiles(orderId);
   };
 
@@ -120,22 +138,17 @@ export default function Home() {
     }
   };
 
-  const formatDate = (date: string | null | undefined) => {
-    if (!date) return "-";
-    return new Date(date).toLocaleDateString("en-GB");
-  };
+  const formatDate = (date: string | null | undefined) =>
+    date ? new Date(date).toLocaleDateString("en-GB") : "-";
 
   if (!user) return <p>Loading...</p>;
 
   return (
     <div className="layout">
 
-      {/* ❌ SIDEBAR SKRYTÝ NA MOBILE */}
       <aside className="sidebar">
         <h2>Portal</h2>
-        <button onClick={logout} className="logout">
-          Logout
-        </button>
+        <button onClick={logout} className="logout">Logout</button>
       </aside>
 
       <main className="main">
@@ -167,18 +180,13 @@ export default function Home() {
                   return (
                     <Fragment key={o.id}>
                       <tr onClick={() => toggleRow(o.id)} className="row">
-                        <td className="idCell">
-                          <span className={`arrow ${open ? "open" : ""}`}>
-                            ▶
-                          </span>
-                          #{o.id}
+                        <td>
+                          <span className={`arrow ${open ? "open" : ""}`}>▶</span>
+                          {o.id}
                         </td>
 
                         <td>
-                          <span
-                            className="status"
-                            style={getStatusStyle(o.status)}
-                          >
+                          <span style={getStatusStyle(o.status)}>
                             {o.status}
                           </span>
                         </td>
@@ -211,11 +219,7 @@ export default function Home() {
                                           hidden
                                           onChange={(e) => {
                                             if (e.target.files?.[0]) {
-                                              uploadFile(
-                                                o.id,
-                                                t.key,
-                                                e.target.files[0]
-                                              );
+                                              uploadFile(o.id, t.key, e.target.files[0]);
                                             }
                                           }}
                                         />
@@ -244,9 +248,17 @@ export default function Home() {
             </table>
           </div>
         </div>
+
+        
       </main>
 
       <style jsx>{`
+
+      .arrow {
+  display: inline-block;
+  transition: transform 0.2s ease;
+  margin-right: 6px;
+}
         .layout {
           display: flex;
           min-height: 100vh;
@@ -292,8 +304,7 @@ export default function Home() {
           border-collapse: collapse;
         }
 
-        th,
-        td {
+        th, td {
           padding: 10px;
           white-space: nowrap;
           text-align: left;
@@ -303,24 +314,8 @@ export default function Home() {
           cursor: pointer;
         }
 
-        .idCell {
-          display: flex;
-          gap: 8px;
-          align-items: center;
-        }
-
-        .arrow {
-          transition: 0.2s;
-        }
-
         .arrow.open {
           transform: rotate(90deg);
-        }
-
-        .status {
-          padding: 4px 10px;
-          border-radius: 20px;
-          font-size: 12px;
         }
 
         .actions {
@@ -358,7 +353,6 @@ export default function Home() {
           color: blue;
         }
 
-        /* 📱 MOBILE = bez sidebaru */
         @media (max-width: 768px) {
           .layout {
             flex-direction: column;
@@ -372,16 +366,11 @@ export default function Home() {
             padding: 12px;
           }
 
-          .card {
-            padding: 10px;
-          }
-
           .actions {
             grid-template-columns: 1fr;
           }
 
-          th,
-          td {
+          th, td {
             font-size: 12px;
             padding: 6px;
           }
@@ -389,4 +378,6 @@ export default function Home() {
       `}</style>
     </div>
   );
+
+  
 }
