@@ -25,8 +25,16 @@ export default function Home() {
   const [user, setUser] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
   const [openId, setOpenId] = useState<number | null>(null);
-
   const [filesByOrder, setFilesByOrder] = useState<Record<string, any[]>>({});
+
+  // ---------------------------
+  // SAFE FILE ID
+  // ---------------------------
+  const makeFileId = () => {
+    const rand = Math.random().toString(36).substring(2, 8);
+    const time = Date.now().toString(36);
+    return `${time}-${rand}`;
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -59,10 +67,10 @@ export default function Home() {
     const { data, error } = await supabase
       .from("order_files")
       .select("*")
-      .eq("order_id", String(orderId));
+      .eq("order_id", Number(orderId));
 
     if (error) {
-      console.log("LOAD FILES ERROR:", error);
+      console.log(error);
       return;
     }
 
@@ -72,51 +80,56 @@ export default function Home() {
     }));
   };
 
-  const toggleRow = async (id: number) => {
-    const next = openId === id ? null : id;
+  const toggleRow = async (orderId: number) => {
+    const next = openId === orderId ? null : orderId;
     setOpenId(next);
 
     if (next !== null) {
-      await loadFiles(id);
+      await loadFiles(orderId);
     }
   };
 
+  // ---------------------------
+  // UPLOAD
+  // ---------------------------
   const uploadFile = async (orderId: number, type: FileType, file: File) => {
-    const filePath = `${orderId}/${type}/${Date.now()}-${file.name}`;
+    const fileId = makeFileId();
 
-    const { error: uploadError } = await supabase.storage
+    const filePath = `${orderId}/${type}/${fileId}.pdf`;
+
+    const { error } = await supabase.storage
       .from("order_files")
       .upload(filePath, file);
 
-    if (uploadError) {
-      console.log(uploadError);
-      return alert(uploadError.message);
+    if (error) {
+      alert(error.message);
+      return;
     }
 
     const { data } = supabase.storage
       .from("order_files")
       .getPublicUrl(filePath);
 
-    const { error: dbError } = await supabase.from("order_files").insert({
-      order_id: String(orderId),
+    await supabase.from("order_files").insert({
+      order_id: orderId,
       type,
       file_url: data.publicUrl,
       file_name: file.name,
+      file_id: fileId,
     });
-
-    if (dbError) {
-      console.log("DB ERROR:", dbError);
-      return;
-    }
 
     await loadFiles(orderId);
   };
 
+  // ---------------------------
+  // HELPERS
+  // ---------------------------
   const getFiles = (orderId: number | string) =>
     filesByOrder[String(orderId)] || [];
 
-  const getFilesCount = (orderId: number | string, type: FileType) =>
-    getFiles(orderId).filter((f) => f.type === type).length;
+  const getFileForType = (orderId: number | string, type: FileType) => {
+    return getFiles(orderId).find((f) => f.type === type);
+  };
 
   const getStatusStyle = (status: string) => {
     switch (status) {
@@ -140,7 +153,6 @@ export default function Home() {
 
   return (
     <div className="layout">
-
       <aside className="sidebar">
         <h2>Portal</h2>
         <button onClick={logout} className="logout">Logout</button>
@@ -152,114 +164,111 @@ export default function Home() {
 
           <div className="headerRight">
             <p>{user.email}</p>
-
-            <button onClick={logout} className="logoutMobile">
-              Logout
-            </button>
+            <button onClick={logout} className="logoutMobile">Logout</button>
           </div>
         </div>
 
         <div className="card">
           <h2>My Orders</h2>
 
-          <div className="tableWrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Status</th>
-                  <th>Price</th>
-                  <th>Quote</th>
-                  <th>Ordered</th>
-                  <th>Delivered</th>
-                </tr>
-              </thead>
+          <table>
+            <thead>
+              <tr>
+                <th>Order_ID</th>
+                <th>Status</th>
+                <th>Price</th>
+                <th>Quote</th>
+                <th>Ordered</th>
+                <th>Delivered</th>
+              </tr>
+            </thead>
 
-              <tbody>
-                {orders.map((o) => {
-                  const open = openId === o.id;
+            <tbody>
+              {orders.map((o) => {
+                const open = openId === o.order_id;
 
-                  return (
-                    <Fragment key={o.id}>
-                      <tr onClick={() => toggleRow(o.id)} className="row">
-                        <td>
-                          <span className={`arrow ${open ? "open" : ""}`}>▶</span>
-                          {o.id}
-                        </td>
+                return (
+                  <Fragment key={o.order_id}>
+                    <tr onClick={() => toggleRow(o.order_id)} className="row">
+                      <td>
+                        <span className={`arrow ${open ? "open" : ""}`}>▶</span>
+                        {o.order_id}
+                      </td>
 
-                        <td>
-                          <span style={getStatusStyle(o.status)}>
-                            {o.status}
-                          </span>
-                        </td>
+                      <td>
+                        <span style={getStatusStyle(o.status)}>
+                          {o.status}
+                        </span>
+                      </td>
 
-                        <td>{o.price}€</td>
-                        <td>{formatDate(o.quote_sent_at)}</td>
-                        <td>{formatDate(o.ordered_at)}</td>
-                        <td>{formatDate(o.delivered_at)}</td>
-                      </tr>
+                      <td>{o.price}€</td>
+                      <td>{formatDate(o.quote_sent_at)}</td>
+                      <td>{formatDate(o.ordered_at)}</td>
+                      <td>{formatDate(o.delivered_at)}</td>
+                    </tr>
 
-                      {open && (
-                        <tr>
-                          <td colSpan={6}>
-                            <div className="actions">
+                    {open && (
+                      <tr>
+                        <td colSpan={6}>
+                          <div className="actions">
 
-                              {FILE_TYPES.map((t) => {
-                                const count = getFilesCount(o.id, t.key);
+                            {FILE_TYPES.map((t) => {
+                              const file = getFileForType(o.order_id, t.key);
 
-                                return (
-                                  <div key={t.key} className="docBox">
-                                    <div className="docTop">
-                                      <span>
-                                        {t.icon} {t.label} ({count})
-                                      </span>
+                              return (
+                                <div key={t.key} className="docBox">
+                                  <div className="docTop">
+                                    <span>
+                                      {t.icon} {t.label}
+                                    </span>
 
-                                      <label className="uploadBtn">
+                                    <div className="btnCol">
+
+                                      <label className="fileBtn">
                                         Upload
                                         <input
                                           type="file"
                                           hidden
                                           onChange={(e) => {
                                             if (e.target.files?.[0]) {
-                                              uploadFile(o.id, t.key, e.target.files[0]);
+                                              uploadFile(
+                                                o.order_id,
+                                                t.key,
+                                                e.target.files[0]
+                                              );
                                             }
                                           }}
                                         />
                                       </label>
+
+                                      <a
+  href={file?.file_url || "#"}
+  target="_blank"
+  rel="noopener noreferrer"
+  className={`fileBtn ${!file ? "disabled" : ""}`}
+>
+  Download
+</a>
+
                                     </div>
-
-                                    {getFiles(o.id)
-                                      .filter((f) => f.type === t.key)
-                                      .map((f) => (
-                                        <a key={f.id} href={f.file_url} target="_blank">
-                                          Download
-                                        </a>
-                                      ))}
                                   </div>
-                                );
-                              })}
+                                </div>
+                              );
+                            })}
 
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
-
       </main>
 
       <style jsx>{`
-        .arrow {
-          display: inline-block;
-          transition: transform 0.2s ease;
-          margin-right: 6px;
-        }
-
         .layout {
           display: flex;
           min-height: 100vh;
@@ -273,66 +282,10 @@ export default function Home() {
           padding: 20px;
         }
 
-        .logout {
-          width: 100%;
-          padding: 10px;
-          border: none;
-          background: #333;
-          color: white;
-          border-radius: 6px;
-        }
-
         .main {
           flex: 1;
           padding: 30px;
           background: #f5f5f5;
-        }
-
-        .header {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 20px;
-        }
-
-        .headerRight {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-
-        .logoutMobile {
-          display: none;
-          padding: 6px 10px;
-          border: none;
-          background: #111;
-          color: white;
-          border-radius: 6px;
-          font-size: 12px;
-        }
-
-        .card {
-          background: white;
-          padding: 20px;
-          border-radius: 12px;
-        }
-
-        table {
-          width: 100%;
-          border-collapse: collapse;
-        }
-
-        th, td {
-          padding: 10px;
-          white-space: nowrap;
-          text-align: left;
-        }
-
-        .row {
-          cursor: pointer;
-        }
-
-        .arrow.open {
-          transform: rotate(90deg);
         }
 
         .actions {
@@ -345,9 +298,6 @@ export default function Home() {
           background: #f8fafc;
           padding: 10px;
           border-radius: 10px;
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
         }
 
         .docTop {
@@ -356,45 +306,67 @@ export default function Home() {
           align-items: center;
         }
 
-        .uploadBtn {
+        .btnCol {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          width: 110px;
+        }
+
+        .fileBtn {
           background: #111;
           color: white;
-          padding: 4px 8px;
+          padding: 6px 10px;
           border-radius: 6px;
           font-size: 12px;
           cursor: pointer;
+          text-align: center;
+          display: inline-block;
+          width: 100%;
         }
 
-        a {
-          font-size: 12px;
-          color: blue;
+        .fileBtn:hover {
+          background: #222;
         }
 
-        @media (max-width: 768px) {
-          .layout {
-            flex-direction: column;
-          }
+        .arrow {
+          margin-right: 6px;
+        }
 
-          .sidebar {
-            display: none;
-          }
+        .arrow.open {
+          transform: rotate(90deg);
+        }
 
-          .main {
-            padding: 12px;
-          }
+        table {
+          width: 100%;
+          border-collapse: collapse;
+        }
 
-          .actions {
-            grid-template-columns: 1fr;
-          }
+        th, td {
+          padding: 10px;
+          white-space: nowrap;
+          text-align: left;
+        }
+.fileBtn {
+  background: #111;
+  color: white;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  text-align: center;
+  display: inline-block;
+  width: 100%;
+}
 
-          th, td {
-            font-size: 12px;
-            padding: 6px;
-          }
-
-          .logoutMobile {
-            display: block;
-          }
+.fileBtn.disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  pointer-events: none;
+  opacity: 0.7;
+}
+        .row {
+          cursor: pointer;
         }
       `}</style>
     </div>
