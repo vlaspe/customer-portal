@@ -25,16 +25,8 @@ export default function Home() {
   const [user, setUser] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
   const [openId, setOpenId] = useState<number | null>(null);
-  const [filesByOrder, setFilesByOrder] = useState<Record<string, any[]>>({});
 
-  // ---------------------------
-  // SAFE FILE ID
-  // ---------------------------
-  const makeFileId = () => {
-    const rand = Math.random().toString(36).substring(2, 8);
-    const time = Date.now().toString(36);
-    return `${time}-${rand}`;
-  };
+  const [filesByOrder, setFilesByOrder] = useState<Record<string, any[]>>({});
 
   useEffect(() => {
     const load = async () => {
@@ -70,7 +62,7 @@ export default function Home() {
       .eq("order_id", Number(orderId));
 
     if (error) {
-      console.log(error);
+      console.log("LOAD FILES ERROR:", error);
       return;
     }
 
@@ -89,47 +81,43 @@ export default function Home() {
     }
   };
 
-  // ---------------------------
-  // UPLOAD
-  // ---------------------------
   const uploadFile = async (orderId: number, type: FileType, file: File) => {
-    const fileId = makeFileId();
+    const filePath = `${orderId}/${type}/${orderId}.pdf`;
 
-    const filePath = `${orderId}/${type}/${fileId}.pdf`;
-
-    const { error } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from("order_files")
       .upload(filePath, file);
 
-    if (error) {
-      alert(error.message);
-      return;
+    if (uploadError) {
+      console.log(uploadError);
+      return alert(uploadError.message);
     }
 
     const { data } = supabase.storage
       .from("order_files")
       .getPublicUrl(filePath);
 
-    await supabase.from("order_files").insert({
+    const { error: dbError } = await supabase.from("order_files").insert({
       order_id: orderId,
       type,
       file_url: data.publicUrl,
       file_name: file.name,
-      file_id: fileId,
     });
 
+    if (dbError) {
+      console.log("DB ERROR:", dbError);
+      return;
+    }
+
     await loadFiles(orderId);
+    setOpenId((prev) => prev);
   };
 
-  // ---------------------------
-  // HELPERS
-  // ---------------------------
   const getFiles = (orderId: number | string) =>
     filesByOrder[String(orderId)] || [];
 
-  const getFileForType = (orderId: number | string, type: FileType) => {
-    return getFiles(orderId).find((f) => f.type === type);
-  };
+  const getFilesCount = (orderId: number | string, type: FileType) =>
+    getFiles(orderId).filter((f) => f.type === type).length;
 
   const getStatusStyle = (status: string) => {
     switch (status) {
@@ -149,10 +137,14 @@ export default function Home() {
   const formatDate = (date: string | null | undefined) =>
     date ? new Date(date).toLocaleDateString("en-GB") : "-";
 
+
+
+  
   if (!user) return <p>Loading...</p>;
 
   return (
     <div className="layout">
+
       <aside className="sidebar">
         <h2>Portal</h2>
         <button onClick={logout} className="logout">Logout</button>
@@ -164,111 +156,131 @@ export default function Home() {
 
           <div className="headerRight">
             <p>{user.email}</p>
-            <button onClick={logout} className="logoutMobile">Logout</button>
+
+            <button onClick={logout} className="logoutMobile">
+              Logout
+            </button>
           </div>
         </div>
 
         <div className="card">
           <h2>My Orders</h2>
 
-          <table>
-            <thead>
-              <tr>
-                <th>Order_ID</th>
-                <th>Status</th>
-                <th>Price</th>
-                <th>Quote</th>
-                <th>Ordered</th>
-                <th>Delivered</th>
-              </tr>
-            </thead>
+          <div className="tableWrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Order_ID</th>
+                  <th>Status</th>
+                  <th>Price</th>
+                  <th>Quote</th>
+                  <th>Ordered</th>
+                  <th>Delivered</th>
+                </tr>
+              </thead>
 
-            <tbody>
-              {orders.map((o) => {
-                const open = openId === o.order_id;
+              <tbody>
+                {orders.map((o) => {
+                  const open = openId === o.order_id;
 
-                return (
-                  <Fragment key={o.order_id}>
-                    <tr onClick={() => toggleRow(o.order_id)} className="row">
-                      <td>
-                        <span className={`arrow ${open ? "open" : ""}`}>▶</span>
-                        {o.order_id}
-                      </td>
-
-                      <td>
-                        <span style={getStatusStyle(o.status)}>
-                          {o.status}
-                        </span>
-                      </td>
-
-                      <td>{o.price}€</td>
-                      <td>{formatDate(o.quote_sent_at)}</td>
-                      <td>{formatDate(o.ordered_at)}</td>
-                      <td>{formatDate(o.delivered_at)}</td>
-                    </tr>
-
-                    {open && (
-                      <tr>
-                        <td colSpan={6}>
-                          <div className="actions">
-
-                            {FILE_TYPES.map((t) => {
-                              const file = getFileForType(o.order_id, t.key);
-
-                              return (
-                                <div key={t.key} className="docBox">
-                                  <div className="docTop">
-                                    <span>
-                                      {t.icon} {t.label}
-                                    </span>
-
-                                    <div className="btnCol">
-
-                                      <label className="fileBtn">
-                                        Upload
-                                        <input
-                                          type="file"
-                                          hidden
-                                          onChange={(e) => {
-                                            if (e.target.files?.[0]) {
-                                              uploadFile(
-                                                o.order_id,
-                                                t.key,
-                                                e.target.files[0]
-                                              );
-                                            }
-                                          }}
-                                        />
-                                      </label>
-
-                                      <a
-  href={file?.file_url || "#"}
-  target="_blank"
-  rel="noopener noreferrer"
-  className={`fileBtn ${!file ? "disabled" : ""}`}
->
-  Download
-</a>
-
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })}
-
-                          </div>
+                  return (
+                    <Fragment key={o.order_id}>
+                      <tr onClick={() => toggleRow(o.order_id)} className="row">
+                        <td>
+                          <span className={`arrow ${open ? "open" : ""}`}>▶</span>
+                          {o.order_id}
                         </td>
+
+                        <td>
+                          <span style={getStatusStyle(o.status)}>
+                            {o.status}
+                          </span>
+                        </td>
+
+                        <td>{o.price}€</td>
+                        <td>{formatDate(o.quote_sent_at)}</td>
+                        <td>{formatDate(o.ordered_at)}</td>
+                        <td>{formatDate(o.delivered_at)}</td>
                       </tr>
-                    )}
-                  </Fragment>
-                );
-              })}
-            </tbody>
-          </table>
+
+                      {open && (
+                        <tr>
+                          <td colSpan={6}>
+                            <div className="actions">
+
+                              {FILE_TYPES.map((t) => {
+                                const count = getFilesCount(o.order_id, t.key);
+
+                                return (
+                                  <div key={t.key} className="docBox">
+                                    <div className="docTop">
+  <span>
+    {t.icon} {t.label} {count === 0 ? "(No files yet)" : `(${count})`}
+  </span>
+
+  <div className="btnGroup">
+    <label className="uploadBtn">
+      Upload
+      <input
+        type="file"
+        hidden
+        onChange={(e) => {
+          if (e.target.files?.[0]) {
+            uploadFile(o.order_id, t.key, e.target.files[0]);
+          }
+        }}
+      />
+    </label>
+
+    {(() => {
+      const file = getFiles(o.order_id)
+        .filter((f) => f.type === t.key)
+        .slice(-1)[0];
+
+      if (!file) return null;
+
+      return (
+        <a
+          className="uploadBtn"
+          href={file.file_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          download
+        >
+          Download
+        </a>
+      );
+    })()}
+  </div>
+</div>
+
+                                        
+                                
+                                  </div>
+                                );
+                              })}
+
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
+
       </main>
 
       <style jsx>{`
+        .arrow {
+          display: inline-block;
+          transition: transform 0.2s ease;
+          margin-right: 6px;
+        }
+
         .layout {
           display: flex;
           min-height: 100vh;
@@ -282,59 +294,51 @@ export default function Home() {
           padding: 20px;
         }
 
+        .logout {
+          width: 100%;
+          padding: 10px;
+          border: none;
+          background: #333;
+          color: white;
+          border-radius: 6px;
+        }
+.btnGroup {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
         .main {
           flex: 1;
           padding: 30px;
           background: #f5f5f5;
         }
 
-        .actions {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
+        .header {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 20px;
+        }
+
+        .headerRight {
+          display: flex;
+          align-items: center;
           gap: 12px;
         }
 
-        .docBox {
-          background: #f8fafc;
-          padding: 10px;
-          border-radius: 10px;
-        }
-
-        .docTop {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-
-        .btnCol {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-          width: 110px;
-        }
-
-        .fileBtn {
+        .logoutMobile {
+          display: none;
+          padding: 6px 10px;
+          border: none;
           background: #111;
           color: white;
-          padding: 6px 10px;
           border-radius: 6px;
           font-size: 12px;
-          cursor: pointer;
-          text-align: center;
-          display: inline-block;
-          width: 100%;
         }
 
-        .fileBtn:hover {
-          background: #222;
-        }
-
-        .arrow {
-          margin-right: 6px;
-        }
-
-        .arrow.open {
-          transform: rotate(90deg);
+        .card {
+          background: white;
+          padding: 20px;
+          border-radius: 12px;
         }
 
         table {
@@ -347,28 +351,78 @@ export default function Home() {
           white-space: nowrap;
           text-align: left;
         }
-.fileBtn {
-  background: #111;
-  color: white;
-  padding: 6px 10px;
-  border-radius: 6px;
-  font-size: 12px;
-  cursor: pointer;
-  text-align: center;
-  display: inline-block;
-  width: 100%;
-}
 
-.fileBtn.disabled {
-  background: #9ca3af;
-  cursor: not-allowed;
-  pointer-events: none;
-  opacity: 0.7;
-}
         .row {
           cursor: pointer;
+        }
+
+        .arrow.open {
+          transform: rotate(90deg);
+        }
+
+        .actions {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 12px;
+        }
+
+        .docBox {
+          background: #f8fafc;
+          padding: 10px;
+          border-radius: 10px;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .docTop {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .uploadBtn {
+          background: #111;
+          color: white;
+          padding: 4px 8px;
+          border-radius: 6px;
+          font-size: 12px;
+          cursor: pointer;
+        }
+
+        a {
+          font-size: 12px;
+          color: blue;
+        }
+
+        @media (max-width: 768px) {
+          .layout {
+            flex-direction: column;
+          }
+
+          .sidebar {
+            display: none;
+          }
+
+          .main {
+            padding: 12px;
+          }
+
+          .actions {
+            grid-template-columns: 1fr;
+          }
+
+          th, td {
+            font-size: 12px;
+            padding: 6px;
+          }
+
+          .logoutMobile {
+            display: block;
+          }
         }
       `}</style>
     </div>
   );
 }
+

@@ -141,7 +141,42 @@ export default function Login() {
             font-size: 20px;
           }
         }
+          /* 🔥 fix pre dark mode / system override */
+input {
+  color: #111827;          /* text v inpute */
+  -webkit-text-fill-color: #111827; /* iOS autofill fix */
+  caret-color: #111827;    /* kurzor */
+}
+
+/* 🔥 fix pre autofill (Chrome / Safari) */
+input:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0px 1000px #fafafa inset;
+  -webkit-text-fill-color: #111827;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+/* 🔥 dark mode override (ak by browser prepol farby) */
+@media (prefers-color-scheme: dark) {
+  .bg {
+    background: #f6f7fb; /* drží light theme aj v dark mode */
+  }
+
+  .card {
+    background: white;
+    border-color: #e8e8ee;
+  }
+
+  input {
+    background: #fafafa;
+    color: #111827;
+  }
+
+  input::placeholder {
+    color: #9ca3af;
+  }
+}
       `}</style>
     </>
   );
 }
+
