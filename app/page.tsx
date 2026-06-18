@@ -171,12 +171,15 @@ export default function Home() {
             <table>
               <thead>
                 <tr>
-                  <th>Order_ID</th>
-                  <th>Status</th>
-                  <th>Price</th>
-                  <th>Quote</th>
-                  <th>Ordered</th>
-                  <th>Delivered</th>
+                  <th></th>
+<th>Order ID</th>
+<th>Status</th>
+<th>Order Cust. No.</th>
+<th>Price</th>
+<th>Quote sent</th>
+<th>Ordered date</th>
+<th>Est. delivery</th>
+<th>Delivered date</th>
                 </tr>
               </thead>
 
@@ -186,23 +189,26 @@ export default function Home() {
 
                   return (
                     <Fragment key={o.order_id}>
-                      <tr onClick={() => toggleRow(o.order_id)} className="row">
-                        <td>
-                          <span className={`arrow ${open ? "open" : ""}`}>▶</span>
-                          {o.order_id}
-                        </td>
+                     <tr onClick={() => toggleRow(o.order_id)} className="row">
+  <td className="arrowCell">
+    <span className={`arrow ${open ? "open" : ""}`}>▶</span>
+  </td>
 
-                        <td>
-                          <span style={getStatusStyle(o.status)}>
-                            {o.status}
-                          </span>
-                        </td>
+  <td>{o.order_id}</td>
 
-                        <td>{o.price}€</td>
-                        <td>{formatDate(o.quote_sent_at)}</td>
-                        <td>{formatDate(o.ordered_at)}</td>
-                        <td>{formatDate(o.delivered_at)}</td>
-                      </tr>
+  <td>
+    <span style={getStatusStyle(o.status)}>
+      {o.status}
+    </span>
+  </td>
+
+  <td>{o.customer_order_no ?? "-"}</td>
+  <td>{o.price ? `${o.price}€` : "-"}</td>
+  <td>{formatDate(o.quote_sent_at)}</td>
+  <td>{formatDate(o.ordered_at)}</td>
+  <td>{formatDate(o.estimated_delivery_at)}</td>
+  <td>{formatDate(o.delivered_at)}</td>
+</tr>
 
                       {open && (
                         <tr>
@@ -276,181 +282,287 @@ export default function Home() {
       </main>
 
       <style jsx>{`
-        .arrow {
-          display: inline-block;
-          transition: transform 0.2s ease;
-          margin-right: 6px;
-        }
+       :global(html, body) {
+  margin: 0;
+  padding: 0;
+  background: #f4f6f8;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto;
+}
 
-        .layout {
-          display: flex;
-          min-height: 100vh;
-          font-family: sans-serif;
-        }
+/* =========================
+   LAYOUT
+========================= */
 
-        .sidebar {
-          width: 220px;
-          background: #111;
-          color: white;
-          padding: 20px;
-        }
-
-        .logout {
-          width: 100%;
-          padding: 10px;
-          border: none;
-          background: #333;
-          color: white;
-          border-radius: 6px;
-        }
-.btnGroup {
+.layout {
   display: flex;
-  gap: 6px;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* =========================
+   SIDEBAR (MODERN PANEL)
+========================= */
+
+.sidebar {
+  width: clamp(200px, 18vw, 260px);
+  background: #0f172a;
+  color: white;
+  padding: 20px;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.sidebar h2 {
+  font-size: 18px;
+  margin-bottom: 20px;
+  letter-spacing: 0.5px;
+  opacity: 0.9;
+}
+
+/* logout bottom style */
+.logout {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.05);
+  color: white;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.logout:hover {
+  background: rgba(255,255,255,0.12);
+}
+
+/* =========================
+   MAIN AREA
+========================= */
+
+.main {
+  flex: 1;
+  min-width: 0;
+  padding: clamp(16px, 2vw, 32px);
+}
+
+/* HEADER */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.header h1 {
+  font-size: clamp(18px, 1.2vw + 12px, 26px);
+  font-weight: 700;
+  color: #111827;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: #4b5563;
+}
+
+/* mobile logout */
+.logoutMobile {
+  display: none;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: none;
+  background: #111827;
+  color: white;
+}
+
+/* =========================
+   CARD
+========================= */
+
+.card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.04);
+}
+
+/* =========================
+   TABLE WRAP
+========================= */
+
+.tableWrap {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 12px;
+}
+
+/* =========================
+   TABLE CORE
+========================= */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+
+/* HEADER */
+th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  padding: 12px 10px;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* ROW */
+td {
+  padding: 12px 10px;
+  font-size: 13px;
+  color: #111827;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.row {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.row:hover {
+  background: #f8fafc;
+}
+
+/* STRONG FIRST COLUMN (ORDER ID) */
+td:nth-child(2) {
+  font-weight: 600;
+}
+
+/* =========================
+   STATUS BADGE
+========================= */
+
+td span {
+  display: inline-flex;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* =========================
+   ARROW
+========================= */
+
+.arrowCell {
+  width: 36px;
+  text-align: center;
+}
+
+.arrow {
+  display: inline-block;
+  transition: transform 0.2s ease;
+  font-size: 14px;
+  opacity: 0.7;
+}
+
+.arrow.open {
+  transform: rotate(90deg);
+}
+
+/* =========================
+   ACTIONS
+========================= */
+
+.actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 10px 0;
+}
+
+.docBox {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  padding: 10px;
+  border-radius: 12px;
+}
+
+/* =========================
+   BUTTONS
+========================= */
+
+.uploadBtn {
+  background: #111827;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  cursor: pointer;
+}
+  .btnGroup {
+  display: flex;
+  gap: 8px;   /* 👈 MEDZERA medzi tlačidlami */
   align-items: center;
 }
-        .main {
-          flex: 1;
-          padding: 30px;
-          background: #f5f5f5;
-        }
 
-        .header {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 20px;
-        }
+/* =========================
+   MOBILE
+========================= */
 
-        .headerRight {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
+@media (max-width: 768px) {
+  .layout {
+    flex-direction: column;
+  }
 
-        .logoutMobile {
-          display: none;
-          padding: 6px 10px;
-          border: none;
-          background: #111;
-          color: white;
-          border-radius: 6px;
-          font-size: 12px;
-        }
+  .sidebar {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
 
-        .card {
-          background: white;
-          padding: 20px;
-          border-radius: 12px;
-        }
+  .logout {
+    display: none;
+  }
 
-        table {
-          width: 100%;
-          border-collapse: collapse;
-        }
+  .logoutMobile {
+    display: block;
+  }
 
-        th, td {
-          padding: 10px;
-          white-space: nowrap;
-          text-align: left;
-        }
+  th, td {
+    font-size: 11px;
+    padding: 8px;
+  }
 
-        .row {
-          cursor: pointer;
-        }
+  td {
+    white-space: normal;
+  }
 
-        .arrow.open {
-          transform: rotate(90deg);
-        }
-
-        .actions {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 12px;
-        }
-
-        .docBox {
-          background: #f8fafc;
-          padding: 10px;
-          border-radius: 10px;
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-
-        .docTop {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-
-        .uploadBtn {
-          background: #111;
-          color: white;
-          padding: 4px 8px;
-          border-radius: 6px;
-          font-size: 12px;
-          cursor: pointer;
-        }
-
-        a {
-          font-size: 12px;
-          color: blue;
-        }
-
-        @media (max-width: 768px) {
-          .layout {
-            flex-direction: column;
-          }
-
-          .sidebar {
-            display: none;
-          }
-
-          .main {
-            padding: 12px;
-          }
-
-          .actions {
-            grid-template-columns: 1fr;
-          }
-
-          th, td {
-            font-size: 12px;
-            padding: 6px;
-          }
-
-          .logoutMobile {
-            display: block;
-          }
-        }
-
-
- 
-       input {
-  color: #111827 !important;
-  caret-color: #111827;
-  background-color: #fafafa !important;
-  -webkit-text-fill-color: #111827 !important;
+  .actions {
+    grid-template-columns: 1fr;
+  }
 }
 
-/* 🔥 Chrome / Safari autofill fix */
-input:-webkit-autofill,
-input:-webkit-autofill:hover,
-input:-webkit-autofill:focus,
-input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0px 1000px #fafafa inset !important;
-  box-shadow: 0 0 0px 1000px #fafafa inset !important;
-
-  -webkit-text-fill-color: #111827 !important;
-  caret-color: #111827 !important;
-
-  transition: background-color 9999s ease-in-out 0s;
+thead th {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: #f9fafb;
+  backdrop-filter: blur(6px);
 }
 
-/* 🔥 extra hack pre Chrome (najdôležitejší trik) */
-input:-internal-autofill-selected {
-  background-color: #fafafa !important;
-  color: #111827 !important;
-} 
+
 
       `}</style>
     </div>
