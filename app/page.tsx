@@ -421,6 +421,37 @@ export default function Home() {
             display: block;
           }
         }
+/* 🔥 FIX: mobil / dark mode / autofill text viditeľnosť */
+input {
+  color: #111827;
+  -webkit-text-fill-color: #111827;
+  caret-color: #111827;
+}
+
+/* 🔥 autofill (Chrome + Android + Safari) */
+input:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0px 1000px #fafafa inset;
+  -webkit-text-fill-color: #111827;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+/* 🔥 nútený light mode pre form elements */
+@media (prefers-color-scheme: dark) {
+  .card {
+    background: white;
+    border-color: #e5e7eb;
+  }
+
+  input {
+    background: #fafafa;
+    color: #111827;
+  }
+
+  input::placeholder {
+    color: #9ca3af;
+  }
+}
+
       `}</style>
     </div>
   );
