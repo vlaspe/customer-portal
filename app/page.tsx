@@ -82,7 +82,8 @@ export default function Home() {
   };
 
   const uploadFile = async (orderId: number, type: FileType, file: File) => {
-    const filePath = `${orderId}/${type}/${orderId}.pdf`;
+    const random = Math.random().toString(36).substring(2, 10);
+    const filePath = `${orderId}/${type}/${random}_${orderId}.pdf`;
 
     const { error: uploadError } = await supabase.storage
       .from("order_files")
@@ -91,7 +92,7 @@ export default function Home() {
     if (uploadError) {
       console.log(uploadError);
       return alert(uploadError.message);
-    }
+    }s
 
     const { data } = supabase.storage
       .from("order_files")
@@ -421,36 +422,35 @@ export default function Home() {
             display: block;
           }
         }
-/* 🔥 FIX: mobil / dark mode / autofill text viditeľnosť */
-input {
-  color: #111827;
-  -webkit-text-fill-color: #111827;
+
+
+ 
+       input {
+  color: #111827 !important;
   caret-color: #111827;
+  background-color: #fafafa !important;
+  -webkit-text-fill-color: #111827 !important;
 }
 
-/* 🔥 autofill (Chrome + Android + Safari) */
-input:-webkit-autofill {
-  -webkit-box-shadow: 0 0 0px 1000px #fafafa inset;
-  -webkit-text-fill-color: #111827;
+/* 🔥 Chrome / Safari autofill fix */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0px 1000px #fafafa inset !important;
+  box-shadow: 0 0 0px 1000px #fafafa inset !important;
+
+  -webkit-text-fill-color: #111827 !important;
+  caret-color: #111827 !important;
+
   transition: background-color 9999s ease-in-out 0s;
 }
 
-/* 🔥 nútený light mode pre form elements */
-@media (prefers-color-scheme: dark) {
-  .card {
-    background: white;
-    border-color: #e5e7eb;
-  }
-
-  input {
-    background: #fafafa;
-    color: #111827;
-  }
-
-  input::placeholder {
-    color: #9ca3af;
-  }
-}
+/* 🔥 extra hack pre Chrome (najdôležitejší trik) */
+input:-internal-autofill-selected {
+  background-color: #fafafa !important;
+  color: #111827 !important;
+} 
 
       `}</style>
     </div>
