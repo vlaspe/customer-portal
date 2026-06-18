@@ -92,7 +92,7 @@ export default function Home() {
     if (uploadError) {
       console.log(uploadError);
       return alert(uploadError.message);
-    }s
+    }
 
     const { data } = supabase.storage
       .from("order_files")
