@@ -43,7 +43,7 @@ export default function Home() {
   .from("orders")
   .select("*")
   .eq("user_id", auth.user.id)
-  .order("created_at", { ascending: false });
+  .order("order_id", { ascending: false });
 
       setOrders(data || []);
     };
@@ -398,7 +398,6 @@ export default function Home() {
 
 .tableWrap {
   width: 100%;
-  max-height: 70vh;
   overflow-x: auto;
   border-radius: 12px;
 }
