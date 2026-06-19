@@ -27,6 +27,15 @@ export default function Home() {
   const [openId, setOpenId] = useState<number | null>(null);
 
   const [filesByOrder, setFilesByOrder] = useState<Record<string, any[]>>({});
+  const [sortField, setSortField] = useState<string>("order_id");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [enabledStatuses, setEnabledStatuses] = useState<string[]>([
+  "Quote sent",
+  "Ordered",
+  "In production",
+  "Delivered",
+  "QC inspection",
+]);
 
   useEffect(() => {
     const load = async () => {
@@ -124,14 +133,16 @@ export default function Home() {
   const getStatusStyle = (status: string) => {
     switch (status) {
       case "Quote sent":
-        return { color: "#b45309", background: "#fef3c7" };
+        return { color: "#eadf05", background: "#fef3c7" };
       case "Ordered":
-        return { color: "#1d4ed8", background: "#dbeafe" };
+        return { color: "#1a07eb", background: "#dbeafe" };
       case "In production":
-        return { color: "#9a3412", background: "#ffedd5" };
+        return { color: "#e9160b", background: "#ffedd5" };
       case "Delivered":
-        return { color: "#065f46", background: "#d1fae5" };
-      default:
+        return { color: "#0ce22c", background: "#d1fae5" };
+      case "QC inspection":
+        return { color: "#10ac80", background: "#d1fae5" };
+      default: 
         return { color: "#374151", background: "#e5e7eb" };
     }
   };
@@ -139,7 +150,33 @@ export default function Home() {
   const formatDate = (date: string | null | undefined) =>
     date ? new Date(date).toLocaleDateString("en-GB") : "-";
 
+  const toggleStatus = (status: string) => {
+  setEnabledStatuses((prev) =>
+    prev.includes(status)
+      ? prev.filter((s) => s !== status)
+      : [...prev, status]
+  );
+};
 
+const sortedOrders = [...orders]
+  .filter((o) => {
+    return enabledStatuses.includes(o.status);
+  })
+  .sort((a, b) => {
+    const valA = a[sortField];
+    const valB = b[sortField];
+
+    if (valA == null) return 1;
+    if (valB == null) return -1;
+
+    if (typeof valA === "number" && typeof valB === "number") {
+      return sortDir === "asc" ? valA - valB : valB - valA;
+    }
+
+    return sortDir === "asc"
+      ? String(valA).localeCompare(String(valB))
+      : String(valB).localeCompare(String(valA));
+  });
 
   
   if (!user) return <p>Loading...</p>;
@@ -166,6 +203,37 @@ export default function Home() {
         </div>
 
         <div className="card">
+          <div style={{ display: "flex", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
+  {[
+    "Quote sent",
+    "Ordered",
+    "In production",
+    "QC inspection",
+    "Delivered",
+  ].map((status) => (
+    <label
+      key={status}
+      style={{
+        fontSize: 12,
+        display: "flex",
+        gap: 6,
+        alignItems: "center",
+        background: "#f3f4f6",
+        padding: "4px 8px",
+        borderRadius: 8,
+        cursor: "pointer",
+        userSelect: "none",
+      }}
+    >
+      <input
+        type="checkbox"
+        checked={enabledStatuses.includes(status)}
+        onChange={() => toggleStatus(status)}
+      />
+      {status}
+    </label>
+  ))}
+</div>
           <h2>My Orders</h2>
 
           <div className="tableWrap">
@@ -173,10 +241,60 @@ export default function Home() {
               <thead>
                 <tr>
                   <th></th>
-<th>Order ID</th>
-<th>Status</th>
-<th>Order Cust. No.</th>
-<th>Price</th>
+ <th
+      style={{ cursor: "pointer" }}
+      onClick={() => {
+        setSortField("order_id");
+        setSortDir(
+          sortField === "order_id" && sortDir === "asc" ? "desc" : "asc"
+        );
+      }}
+    >
+      Order ID {sortField === "order_id" ? (sortDir === "asc" ? "▲" : "▼") : "▼"}
+    </th>
+
+    <th
+      style={{ cursor: "pointer" }}
+      onClick={() => {
+        setSortField("status");
+        setSortDir(
+          sortField === "status" && sortDir === "asc" ? "desc" : "asc"
+        );
+      }}
+    >
+      Status {sortField === "status" ? (sortDir === "asc" ? "▲" : "▼") : "▼"}
+    </th>
+
+    <th
+      style={{ cursor: "pointer" }}
+      onClick={() => {
+        setSortField("customer_order_no");
+        setSortDir(
+          sortField === "customer_order_no" && sortDir === "asc"
+            ? "desc"
+            : "asc"
+        );
+      }}
+    >
+      Order Cust. No.{" "}
+      {sortField === "customer_order_no"
+        ? sortDir === "asc"
+          ? "▲"
+          : "▼"
+        : "▼"}
+    </th>
+
+    <th
+      style={{ cursor: "pointer" }}
+      onClick={() => {
+        setSortField("price");
+        setSortDir(
+          sortField === "price" && sortDir === "asc" ? "desc" : "asc"
+        );
+      }}
+    >
+      Price {sortField === "price" ? (sortDir === "asc" ? "▲" : "▼") : "▼"}
+    </th>
 <th>Quote sent</th>
 <th>Ordered date</th>
 <th>Est. delivery</th>
@@ -185,7 +303,7 @@ export default function Home() {
               </thead>
 
               <tbody>
-                {orders.map((o) => {
+                {sortedOrders.map((o) => {
                   const open = openId === o.order_id;
 
                   return (
