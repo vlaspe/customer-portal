@@ -398,7 +398,8 @@ export default function Home() {
 
 .tableWrap {
   width: 100%;
-  overflow-x: auto;
+  overflow: auto;
+  max-height: 70vh; /* 👈 toto je kľúčové */
   border-radius: 12px;
 }
 
