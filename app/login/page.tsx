@@ -44,7 +44,15 @@ export default function Login() {
           />
 
           <button onClick={signIn}>Sign in</button>
+          <div className="logoWrap">
+  <img
+    src="https://indevo.sk/logo.jpg"
+    alt="Indevo logo"
+    className="logo"
+  />
+</div>
         </div>
+        
       </main>
 
       <style jsx>{`
@@ -174,9 +182,27 @@ input:-webkit-autofill {
   input::placeholder {
     color: #9ca3af;
   }
+    
 }
+
+.logoWrap {
+  display: flex;
+  justify-content: center;
+  margin-top: 18px;
+}
+
+.logo {
+  height: 44px;
+  width: auto;
+  object-fit: contain;
+  opacity: 0.95;
+}
+
+
       `}</style>
     </>
   );
 }
+
+
 

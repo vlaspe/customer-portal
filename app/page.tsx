@@ -235,7 +235,12 @@ const sortedOrders = [...orders]
   ))}
 </div>
           <h2>My Orders</h2>
-
+          
+  <img
+      src="https://indevo.sk/logo.jpg"
+      alt="Indevo logo"
+      className="tableLogo"
+    />
           <div className="tableWrap">
             <table>
               <thead>
@@ -327,6 +332,7 @@ const sortedOrders = [...orders]
   <td>{formatDate(o.ordered_at)}</td>
   <td>{formatDate(o.estimated_delivery_at)}</td>
   <td>{formatDate(o.delivered_at)}</td>
+  
 </tr>
 
                       {open && (
@@ -682,7 +688,21 @@ thead th {
   backdrop-filter: blur(6px);
 }
 
+.card {
+  position: relative; /* 👈 dôležité */
+}
 
+.tableLogo {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+
+  height: 26px;
+  width: auto;
+  object-fit: contain;
+
+  opacity: 0.85;
+}
 
       `}</style>
     </div>
