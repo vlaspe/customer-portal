@@ -65,6 +65,34 @@ export default function Home() {
     router.push("/login");
   };
 
+
+const openEmail = (o: any) => {
+  const to = "info@indevo.sk";
+
+  const subject = `Order ${o.order_id} - ${o.status}`;
+
+const body = `Hi Vladimir,
+
+I am contacting you regarding the following order:
+
+Order ID: ${o.order_id}
+Customer order no.: ${o.customer_order_no ?? "-"}
+Status: ${o.status}
+Price: ${o.price ?? "-"} €
+
+I would appreciate it if you could provide me with an update regarding this order.
+
+Thank you in advance.
+
+`;
+
+  const mailto = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+  window.location.href = mailto;
+};
+
+
+
   const loadFiles = async (orderId: number | string) => {
     const { data, error } = await supabase
       .from("order_files")
@@ -158,6 +186,47 @@ export default function Home() {
   );
 };
 
+const exportCSV = () => {
+  const headers = [
+    "Order ID",
+    "Status",
+    "Customer Order No.",
+    "Price",
+    "Quote sent",
+    "Ordered",
+    "Estimated delivery",
+    "Delivered",
+  ];
+
+
+  
+  const rows = sortedOrders.map((o) => [
+    o.order_id,
+    o.status,
+    o.customer_order_no ?? "-",
+    o.price ?? "-",
+    formatDate(o.quote_sent_at),
+    formatDate(o.ordered_at),
+    formatDate(o.estimated_delivery_at),
+    formatDate(o.delivered_at),
+  ]);
+
+  const csvContent = [
+    headers.join(","),
+    ...rows.map((r) => r.map((v) => `"${v}"`).join(",")),
+  ].join("\n");
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "orders_export.csv";
+  link.click();
+
+  URL.revokeObjectURL(url);
+};
+
 const sortedOrders = [...orders]
   .filter((o) => {
     return enabledStatuses.includes(o.status);
@@ -179,6 +248,9 @@ const sortedOrders = [...orders]
   });
 
   
+
+
+  
   if (!user) return <p>Loading...</p>;
 
   return (
@@ -195,7 +267,11 @@ const sortedOrders = [...orders]
 
           <div className="headerRight">
             <p>{user.email}</p>
+<button onClick={exportCSV} className="exportBtn">
 
+  
+  Export CSV
+</button>
             <button onClick={logout} className="logoutMobile">
               Logout
             </button>
@@ -234,6 +310,8 @@ const sortedOrders = [...orders]
     </label>
   ))}
 </div>
+
+
           <h2>My Orders</h2>
           
   <img
@@ -304,6 +382,7 @@ const sortedOrders = [...orders]
 <th>Ordered date</th>
 <th>Est. delivery</th>
 <th>Delivered date</th>
+<th>Request</th>
                 </tr>
               </thead>
 
@@ -332,7 +411,17 @@ const sortedOrders = [...orders]
   <td>{formatDate(o.ordered_at)}</td>
   <td>{formatDate(o.estimated_delivery_at)}</td>
   <td>{formatDate(o.delivered_at)}</td>
-  
+  <td>
+  <button
+    onClick={(e) => {
+      e.stopPropagation();
+      openEmail(o);
+    }}
+    className="emailBtn"
+  >
+    ✉️
+  </button>
+</td>
 </tr>
 
                       {open && (
@@ -346,6 +435,8 @@ const sortedOrders = [...orders]
                                 return (
                                   <div key={t.key} className="docBox">
                                     <div className="docTop">
+                                      
+                                      
   <span>
     {t.icon} {t.label} {count === 0 ? "(No files yet)" : `(${count})`}
   </span>
@@ -380,9 +471,11 @@ const sortedOrders = [...orders]
           download
         >
           Download
+          
         </a>
       );
     })()}
+    
   </div>
 </div>
 
@@ -703,6 +796,39 @@ thead th {
 
   opacity: 0.85;
 }
+
+.exportBtn {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  font-size: 12px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.exportBtn:hover {
+  background: #f3f4f6;
+}
+
+
+
+.emailBtn {
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.emailBtn:hover {
+  background: #f3f4f6;
+}
+
+
+
+
 
       `}</style>
     </div>
