@@ -14,7 +14,7 @@ type FileType =
 const FILE_TYPES: { key: FileType; label: string; icon: string }[] = [
   { key: "quotation", label: "Quotation", icon: "📄" },
   { key: "purchase_order", label: "Purchase Order", icon: "📦" },
-  { key: "proforma_invoice", label: "Proforma Invoice", icon: "💰" },
+  { key: "proforma_invoice", label: "Proforma Invoice", icon: "💳" },
   { key: "tax_invoice", label: "Tax Invoice", icon: "🧾" },
   { key: "delivery_note", label: "Delivery Note", icon: "🚚" },
 ];
@@ -43,6 +43,7 @@ export default function Home() {
 
       if (!auth.user) {
         router.push("/login");
+        
         return;
       }
 
@@ -287,30 +288,58 @@ const sortedOrders = [...orders]
     "QC inspection",
     "Delivered",
   ].map((status) => (
-    <label
-      key={status}
-      style={{
-        fontSize: 12,
-        display: "flex",
-        gap: 6,
-        alignItems: "center",
-        background: "#f3f4f6",
-        padding: "4px 8px",
-        borderRadius: 8,
-        cursor: "pointer",
-        userSelect: "none",
-      }}
-    >
-      <input
-        type="checkbox"
-        checked={enabledStatuses.includes(status)}
-        onChange={() => toggleStatus(status)}
-      />
-      {status}
-    </label>
+  <button
+  key={status}
+  onClick={() => toggleStatus(status)}
+  className="statusFilter"
+>
+  <span>{status}</span>
+
+  <span
+    className={`dot ${
+      enabledStatuses.includes(status) ? "on" : ""
+    }`}
+  />
+</button>
   ))}
 </div>
 
+<div className="dashboard">
+  <div className="dashCard">
+    <div className="dashLabel">Active Orders</div>
+    <div className="dashValue">
+  {sortedOrders.filter(o =>
+    ["Ordered", "In production", "QC inspection"].includes(o.status)
+  ).length}
+</div>
+  </div>
+
+  <div className="dashCard highlightBlue">
+    <div className="dashLabel">In Production</div>
+    <div className="dashValue">
+      {sortedOrders.filter(o => o.status === "In production").length}
+    </div>
+  </div>
+
+  <div className="dashCard highlightGreen">
+    <div className="dashLabel">Delivered</div>
+    <div className="dashValue">
+      {sortedOrders.filter(o => o.status === "Delivered").length}
+    </div>
+  </div>
+
+  <div className="dashCard highlightGold">
+    <div className="dashLabel">Total Value</div>
+    <div className="dashValue">
+      €{sortedOrders
+  .filter(o =>
+    ["Ordered", "In production", "QC inspection", "Delivered"].includes(o.status)
+  )
+  .reduce((sum, o) => sum + (Number(o.price) || 0), 0)
+  .toLocaleString()}
+    </div>
+  </div>
+</div>
 
           <h2>My Orders</h2>
           
@@ -826,8 +855,153 @@ thead th {
   background: #f3f4f6;
 }
 
+.dashboard {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin: 10px 0 18px;
+}
+
+.dashCard {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.04);
+  transition: 0.2s;
+}
+
+.dashCard:hover {
+  transform: translateY(-2px);
+}
+
+.dashLabel {
+  font-size: 11px;
+  color: #6b7280;
+  margin-bottom: 6px;
+  letter-spacing: 0.3px;
+}
+
+.dashValue {
+  font-size: 22px;
+  font-weight: 700;
+  color: #111827;
+}
+
+/* ACCENTS */
+.highlightBlue {
+  border-left: 4px solid #3b82f6;
+}
+
+.highlightGreen {
+  border-left: 4px solid #10b981;
+}
+
+.highlightGold {
+  border-left: 4px solid #f59e0b;
+}
+
+@media (max-width: 768px) {
+  .dashboard {
+    grid-template-columns: repeat(4, minmax(0, 1fr)); /* 4 v jednom rade */
+    gap: 6px;
+  }
+
+  .dashCard {
+    padding: 6px 6px;
+    border-radius: 10px;
+  }
+
+  .dashLabel {
+    font-size: 8px;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .dashValue {
+    font-size: 13px;
+    font-weight: 700;
+  }
+}
 
 
+
+.statusChip {
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #374151;
+  cursor: pointer;
+
+  transition: all 0.2s ease;
+  user-select: none;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.statusChip:hover {
+  background: #f9fafb;
+  transform: translateY(-1px);
+  border-color: #d1d5db;
+}
+
+.statusChip.active {
+  background: #111827;
+  color: white;
+  border-color: #111827;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.12);
+}
+
+.statusFilter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 6px 10px;
+  border-radius: 10px;
+
+  border: 1px solid #e5e7eb;
+  background: #fff;
+
+  font-size: 12px;
+  color: #374151;
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  user-select: none;
+}
+
+.statusFilter:hover {
+  background: #f9fafb;
+  transform: translateY(-1px);
+}
+
+/* malá “gulička” */
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+
+  border: 2px solid #cbd5e1;
+  background: transparent;
+
+  transition: all 0.2s ease;
+}
+
+/* AKTÍVNY STAV */
+.dot.on {
+  background: #22c55e;
+  border-color: #22c55e;
+
+  box-shadow: 0 0 0 3px rgba(34,197,94,0.15);
+}
 
 
       `}</style>
