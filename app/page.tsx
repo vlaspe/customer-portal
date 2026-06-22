@@ -32,6 +32,7 @@ export default function Home() {
  const [enabledStatuses, setEnabledStatuses] = useState<string[]>([
   "Quote sent",
   "Delivered",
+  "Active orders",
 ]);
 
   useEffect(() => {
