@@ -29,12 +29,9 @@ export default function Home() {
   const [filesByOrder, setFilesByOrder] = useState<Record<string, any[]>>({});
   const [sortField, setSortField] = useState<string>("order_id");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
-  const [enabledStatuses, setEnabledStatuses] = useState<string[]>([
+ const [enabledStatuses, setEnabledStatuses] = useState<string[]>([
   "Quote sent",
-  "Ordered",
-  "In production",
   "Delivered",
-  "QC inspection",
 ]);
 
   useEffect(() => {
@@ -180,11 +177,46 @@ Thank you in advance.
     date ? new Date(date).toLocaleDateString("en-GB") : "-";
 
   const toggleStatus = (status: string) => {
-  setEnabledStatuses((prev) =>
-    prev.includes(status)
+  setEnabledStatuses((prev) => {
+    // ACTIVE ORDERS LOGIKA
+    if (status === "Active orders") {
+      const isActiveSelected = prev.includes("Active orders");
+
+      if (isActiveSelected) {
+        // vypne všetky 3
+        return prev.filter(
+          (s) =>
+            ![
+              "Ordered",
+              "In production",
+              "QC inspection",
+              "Active orders",
+            ].includes(s)
+        );
+      } else {
+        // zapne všetky 3 + Active orders label
+        return [
+          ...prev.filter(
+            (s) =>
+              ![
+                "Ordered",
+                "In production",
+                "QC inspection",
+              ].includes(s)
+          ),
+          "Ordered",
+          "In production",
+          "QC inspection",
+          "Active orders",
+        ];
+      }
+    }
+
+    // ostatné statusy normálne
+    return prev.includes(status)
       ? prev.filter((s) => s !== status)
-      : [...prev, status]
-  );
+      : [...prev, status];
+  });
 };
 
 const exportCSV = () => {
@@ -230,7 +262,13 @@ const exportCSV = () => {
 
 const sortedOrders = [...orders]
   .filter((o) => {
-    return enabledStatuses.includes(o.status);
+    const isActiveOrder =
+  ["Ordered", "In production", "QC inspection"].includes(o.status);
+
+return (
+  enabledStatuses.includes(o.status) ||
+  (enabledStatuses.includes("Active orders") && isActiveOrder)
+);
   })
   .sort((a, b) => {
     const valA = a[sortField];
@@ -281,25 +319,15 @@ const sortedOrders = [...orders]
 
         <div className="card">
           <div style={{ display: "flex", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
-  {[
-    "Quote sent",
-    "Ordered",
-    "In production",
-    "QC inspection",
-    "Delivered",
-  ].map((status) => (
-  <button
+  {["Quote sent", "Active orders", "Delivered"].map((status) => (
+    <button
   key={status}
   onClick={() => toggleStatus(status)}
-  className="statusFilter"
+  className={`statusChip ${
+    enabledStatuses.includes(status) ? "active" : ""
+  }`}
 >
-  <span>{status}</span>
-
-  <span
-    className={`dot ${
-      enabledStatuses.includes(status) ? "on" : ""
-    }`}
-  />
+  {status}
 </button>
   ))}
 </div>
@@ -958,50 +986,7 @@ thead th {
   box-shadow: 0 6px 14px rgba(0,0,0,0.12);
 }
 
-.statusFilter {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
 
-  padding: 6px 10px;
-  border-radius: 10px;
-
-  border: 1px solid #e5e7eb;
-  background: #fff;
-
-  font-size: 12px;
-  color: #374151;
-
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  user-select: none;
-}
-
-.statusFilter:hover {
-  background: #f9fafb;
-  transform: translateY(-1px);
-}
-
-/* malá “gulička” */
-.dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-
-  border: 2px solid #cbd5e1;
-  background: transparent;
-
-  transition: all 0.2s ease;
-}
-
-/* AKTÍVNY STAV */
-.dot.on {
-  background: #22c55e;
-  border-color: #22c55e;
-
-  box-shadow: 0 0 0 3px rgba(34,197,94,0.15);
-}
 
 
       `}</style>
