@@ -120,7 +120,7 @@ Thank you in advance.
 
   const uploadFile = async (orderId: number, type: FileType, file: File) => {
     const random = Math.random().toString(36).substring(2, 10);
-    const filePath = `${orderId}/${type}/${random}_${orderId}.pdf`;
+    const filePath = `${orderId}/${type}/${crypto.randomUUID()}.pdf`;
 
     const { error: uploadError } = await supabase.storage
       .from("order_files")
