@@ -120,10 +120,18 @@ Thank you in advance.
 
   const uploadFile = async (orderId: number, type: FileType, file: File) => {
     const random = Math.random().toString(36).substring(2, 10);
-    const filePath = `${orderId}/${type}/${crypto.randomUUID()}.pdf`;
+    const existingFiles = getFiles(orderId).filter((f) => f.type === type);
+
+const baseId =
+  existingFiles[0]?.file_url?.split("/").pop()?.split("_")[0] ||
+  crypto.randomUUID();
+
+const version = existingFiles.length + 1;
+
+const filePath = `${orderId}/${type}/${baseId}_V${version}.pdf`;
 
 
-    
+
     const { error: uploadError } = await supabase.storage
       .from("order_files")
       .upload(filePath, file);
