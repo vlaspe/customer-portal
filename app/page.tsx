@@ -122,6 +122,8 @@ Thank you in advance.
     const random = Math.random().toString(36).substring(2, 10);
     const filePath = `${orderId}/${type}/${crypto.randomUUID()}.pdf`;
 
+
+    
     const { error: uploadError } = await supabase.storage
       .from("order_files")
       .upload(filePath, file);
