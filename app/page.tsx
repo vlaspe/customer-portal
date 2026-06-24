@@ -34,6 +34,7 @@ export default function Home() {
   "Delivered",
   "Active orders",
 ]);
+const [highlightMode, setHighlightMode] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -187,6 +188,54 @@ const filePath = `${orderId}/${type}/${baseId}_V${version}.pdf`;
   const formatDate = (date: string | null | undefined) =>
     date ? new Date(date).toLocaleDateString("en-GB") : "-";
 
+  const isThisWeek = (date: string | null | undefined) => {
+  if (!date) return false;
+
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return false;
+
+  const now = new Date();
+
+  const start = new Date(now);
+  const day = start.getDay();
+
+  const diffToMonday = (day === 0 ? -6 : 1) - day;
+  start.setDate(start.getDate() + diffToMonday);
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  end.setHours(23, 59, 59, 999);
+
+  return d >= start && d <= end;
+};
+
+const isOverdue = (date: string | null | undefined, status: string) => {
+  if (!date) return false;
+  if (status === "Delivered") return false;
+
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return false;
+
+  const now = new Date();
+
+  // hranice tohto týždňa
+  const start = new Date(now);
+  const day = start.getDay();
+  const diffToMonday = (day === 0 ? -6 : 1) - day;
+  start.setDate(start.getDate() + diffToMonday);
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  end.setHours(23, 59, 59, 999);
+
+  // ❗ OVERDUE až mimo tohto týždňa
+  const isBeforeThisWeek = d < start;
+
+  return isBeforeThisWeek;
+};
+
   const toggleStatus = (status: string) => {
   setEnabledStatuses((prev) => {
     // ACTIVE ORDERS LOGIKA
@@ -270,7 +319,35 @@ const exportCSV = () => {
 
   URL.revokeObjectURL(url);
 };
+const getHighlightColor = (o: any) => {
+  if (!highlightMode) return null;
 
+  switch (highlightMode) {
+    case "active":
+      return ["Ordered", "In production", "QC inspection"].includes(o.status)
+        ? "rgba(59, 130, 246, 0.12)"
+        : null;
+
+    case "week":
+      return o.status !== "Delivered" &&
+        isThisWeek(o.estimated_delivery_at)
+        ? "rgba(59, 130, 246, 0.12)"
+        : null;
+
+    case "overdue":
+      return isOverdue(o.estimated_delivery_at, o.status)
+        ? "rgba(239, 68, 68, 0.14)"
+        : null;
+
+    case "delivered":
+      return o.status === "Delivered"
+        ? "rgba(16, 185, 129, 0.12)"
+        : null;
+
+    default:
+      return null;
+  }
+};
 const sortedOrders = [...orders]
   .filter((o) => {
     const isActiveOrder =
@@ -344,41 +421,105 @@ return (
 </div>
 
 <div className="dashboard">
-  <div className="dashCard">
-    <div className="dashLabel">Active Orders</div>
-    <div className="dashValue">
-  {sortedOrders.filter(o =>
-    ["Ordered", "In production", "QC inspection"].includes(o.status)
-  ).length}
+
+{/* ACTIVE ORDERS */}
+<div
+  className={`dashCard ${
+    highlightMode === "active" ? "activeDash" : ""
+  }`}
+  onClick={() =>
+    setHighlightMode((prev) =>
+      prev === "active" ? null : "active"
+    )
+  }
+  
+>
+  <div className="dashPulseDot" />
+  <div className="dashLabel">Active orders</div>
+  <div className="dashValue">
+    {sortedOrders.filter(o =>
+      ["Ordered", "In production", "QC inspection"].includes(o.status)
+    ).length}
+  </div>
 </div>
-  </div>
 
-  <div className="dashCard highlightBlue">
-    <div className="dashLabel">In Production</div>
-    <div className="dashValue">
-      {sortedOrders.filter(o => o.status === "In production").length}
-    </div>
+{/* THIS WEEK */}
+<div
+  className={`dashCard highlightBlue ${
+    highlightMode === "week" ? "activeDash" : ""
+  }`}
+  onClick={() =>
+    setHighlightMode((prev) =>
+      prev === "week" ? null : "week"
+    )
+  }
+>
+  <div className="dashPulseDot" />
+  <div className="dashLabel">Due This Week</div>
+  <div className="dashValue">
+    {sortedOrders.filter(o =>
+      o.status !== "Delivered" &&
+      isThisWeek(o.estimated_delivery_at)
+    ).length}
   </div>
+</div>
 
-  <div className="dashCard highlightGreen">
-    <div className="dashLabel">Delivered</div>
-    <div className="dashValue">
-      {sortedOrders.filter(o => o.status === "Delivered").length}
-    </div>
+{/* OVERDUE */}
+<div
+  className={`dashCard highlightRed ${
+    highlightMode === "overdue" ? "activeDash" : ""
+  }`}
+  onClick={() =>
+    setHighlightMode((prev) =>
+      prev === "overdue" ? null : "overdue"
+    )
+  }
+>
+  <div className="dashPulseDot" />
+  <div className="dashLabel">Overdue (active orders)</div>
+  <div className="dashValue">
+    {sortedOrders.filter(o =>
+      isOverdue(o.estimated_delivery_at, o.status)
+    ).length}
   </div>
+</div>
 
+{/* DELIVERED */}
+<div
+  className={`dashCard highlightGreen ${
+    highlightMode === "delivered" ? "activeDash" : ""
+  }`}
+  onClick={() =>
+    setHighlightMode((prev) =>
+      prev === "delivered" ? null : "delivered"
+    )
+  }
+>
+  <div className="dashPulseDot" />
+  <div className="dashLabel">Completed Orders</div>
+  <div className="dashValue">
+    {sortedOrders.filter(o =>
+      o.status === "Delivered"
+    ).length}
+  </div>
+</div>
+
+  {/* TOTAL VALUE */}
   <div className="dashCard highlightGold">
     <div className="dashLabel">Total Value</div>
     <div className="dashValue">
       €{sortedOrders
-  .filter(o =>
-    ["Ordered", "In production", "QC inspection", "Delivered"].includes(o.status)
-  )
-  .reduce((sum, o) => sum + (Number(o.price) || 0), 0)
-  .toLocaleString()}
+        .filter(o =>
+          ["Ordered", "In production", "QC inspection", "Delivered"].includes(o.status)
+        )
+        .reduce((sum, o) => sum + (Number(o.price) || 0), 0)
+        .toLocaleString()}
     </div>
   </div>
+
 </div>
+  
+
 
           <h2>My Orders</h2>
           
@@ -460,7 +601,14 @@ return (
 
                   return (
                     <Fragment key={o.order_id}>
-                     <tr onClick={() => toggleRow(o.order_id)} className="row">
+                     <tr
+  onClick={() => toggleRow(o.order_id)}
+  className="row"
+  style={{
+    backgroundColor: getHighlightColor(o) || undefined,
+    transition: "background 0.2s ease"
+  }}
+>
   <td className="arrowCell">
     <span className={`arrow ${open ? "open" : ""}`}>▶</span>
   </td>
@@ -896,7 +1044,7 @@ thead th {
 
 .dashboard {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 12px;
   margin: 10px 0 18px;
 }
@@ -998,8 +1146,64 @@ thead th {
 }
 
 
+.highlightRed {
+  border-left: 4px solid #ef4444;
+}
 
+.dashCard {
+  position: relative;
+  cursor: pointer;
+}
 
+/* pulzujúci klik indikátor */
+.dashPulseDot {
+  position: absolute;
+  bottom: 10px;   /* 👈 Z TOP → BOTTOM */
+  right: 10px;
+
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+
+  background: #3b82f6;
+
+  box-shadow: 0 0 0 rgba(59,130,246,0.6);
+  animation: pulse 1.6s infinite;
+  opacity: 0.9;
+}
+
+/* rôzne farby podľa typu karty */
+.highlightRed .dashPulseDot {
+  background: #ef4444;
+}
+
+.highlightGreen .dashPulseDot {
+  background: #10b981;
+}
+
+.highlightBlue .dashPulseDot {
+  background: #3b82f6;
+}
+
+.highlightGold .dashPulseDot {
+  background: #f59e0b;
+}
+
+/* animácia */
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(59,130,246,0.5);
+  }
+  70% {
+    transform: scale(1.3);
+    box-shadow: 0 0 0 8px rgba(59,130,246,0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(59,130,246,0);
+  }
+}
       `}</style>
     </div>
   );
