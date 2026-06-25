@@ -557,7 +557,7 @@ return (
 
 
 <div className="dashCard highlightRed">
-  <div className="dashLabel">Avg delay (days)</div>
+  <div className="dashLabel">Avg delay (work days)</div>
   <div className="dashValue">
     {(() => {
       const delivered = sortedOrders.filter(
