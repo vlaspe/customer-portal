@@ -407,17 +407,18 @@ return (
         </div>
 
         <div className="card">
-          <div style={{ display: "flex", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
+          <div className="statusFilter">
   {["Quote sent", "Active orders", "Delivered"].map((status) => (
     <button
-  key={status}
-  onClick={() => toggleStatus(status)}
-  className={`statusChip ${
-    enabledStatuses.includes(status) ? "active" : ""
-  }`}
->
-  {status}
-</button>
+      key={status}
+      onClick={() => toggleStatus(status)}
+      className={`statusChip ${
+        enabledStatuses.includes(status) ? "active" : ""
+      }`}
+      aria-pressed={enabledStatuses.includes(status)}
+    >
+      {status}
+    </button>
   ))}
 </div>
 
@@ -504,18 +505,6 @@ return (
   </div>
 </div>
 
-  {/* TOTAL VALUE */}
-  <div className="dashCard highlightGold">
-    <div className="dashLabel">Total Value</div>
-    <div className="dashValue">
-      €{sortedOrders
-        .filter(o =>
-          ["Ordered", "In production", "QC inspection", "Delivered"].includes(o.status)
-        )
-        .reduce((sum, o) => sum + (Number(o.price) || 0), 0)
-        .toLocaleString()}
-    </div>
-  </div>
 
 
   
@@ -563,6 +552,96 @@ return (
     })()}
   </div>
 </div>
+
+
+
+
+<div className="dashCard highlightRed">
+  <div className="dashLabel">Avg delay (days)</div>
+  <div className="dashValue">
+    {(() => {
+      const delivered = sortedOrders.filter(
+        (o) =>
+          o.status === "Delivered" &&
+          o.estimated_delivery_at &&
+          o.delivered_at
+      );
+
+      if (delivered.length === 0) return "-";
+
+      const late = delivered.filter((o) => {
+        const est = new Date(o.estimated_delivery_at);
+        const del = new Date(o.delivered_at);
+        return del.getTime() > est.getTime();
+      });
+
+      const avgDelay =
+        late.length === 0
+          ? 0
+          : late.reduce((sum, o) => {
+              const est = new Date(o.estimated_delivery_at).getTime();
+              const del = new Date(o.delivered_at).getTime();
+
+              const diffDays =
+                (del - est) / (1000 * 60 * 60 * 24);
+
+              return sum + diffDays;
+            }, 0) / late.length;
+
+      return `${avgDelay % 1 === 0 ? avgDelay.toFixed(0) : avgDelay.toFixed(1)} days`;
+    })()}
+  </div>
+</div>
+
+
+
+
+
+<div className="dashCard highlightGreen">
+  <div className="dashLabel">On-time delivery</div>
+  <div className="dashValue">
+    {(() => {
+      const delivered = sortedOrders.filter(
+        (o) =>
+          o.status === "Delivered" &&
+          o.estimated_delivery_at &&
+          o.delivered_at
+      );
+
+      if (delivered.length === 0) return "-";
+
+      const onTime = delivered.filter((o) => {
+        const est = new Date(o.estimated_delivery_at);
+        const del = new Date(o.delivered_at);
+        return del <= est;
+      }).length;
+
+      const rate = (onTime / delivered.length) * 100;
+
+      return `${rate % 1 === 0 ? rate.toFixed(0) : rate.toFixed(1)}%`;
+    })()}
+  </div>
+</div>
+
+
+
+
+
+
+  {/* TOTAL VALUE */}
+  <div className="dashCard highlightGold">
+    <div className="dashLabel">Total Value</div>
+    <div className="dashValue">
+      €{sortedOrders
+        .filter(o =>
+          ["Ordered", "In production", "QC inspection", "Delivered"].includes(o.status)
+        )
+        .reduce((sum, o) => sum + (Number(o.price) || 0), 0)
+        .toLocaleString()}
+    </div>
+  </div>
+
+
 
 
 </div>
@@ -1101,9 +1180,13 @@ thead th {
 
 .dashboard {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
   margin: 10px 0 18px;
+}
+
+.dashCard {
+  min-height: 70px;   /* minimálna výška */
 }
 
 .dashCard {
@@ -1145,11 +1228,7 @@ thead th {
   border-left: 4px solid #f59e0b;
 }
 
-@media (max-width: 768px) {
-  .dashboard {
-    grid-template-columns: repeat(4, minmax(0, 1fr)); /* 4 v jednom rade */
-    gap: 6px;
-  }
+
 
   .dashCard {
     padding: 6px 6px;
@@ -1157,7 +1236,7 @@ thead th {
   }
 
   .dashLabel {
-    font-size: 8px;
+    font-size: 11px;
     margin-bottom: 2px;
     white-space: nowrap;
     overflow: hidden;
@@ -1342,6 +1421,41 @@ thead th {
   }
 }
 
+
+
+.statusFilter {
+  display: inline-flex;
+  background: #f3f4f6;
+  padding: 4px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+/* button základ */
+.statusChip {
+  border: none;
+  background: transparent;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: 0.2s;
+  color: #374151;
+}
+
+/* hover efekt */
+.statusChip:hover {
+  background: rgba(0,0,0,0.05);
+}
+
+/* aktívny stav */
+.statusChip.active {
+  background: white;
+  color: #111827;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
 
       `}</style>
     </div>
