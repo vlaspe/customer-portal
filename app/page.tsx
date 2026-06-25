@@ -424,7 +424,7 @@ return (
 
 {/* ACTIVE ORDERS */}
 <div
-  className={`dashCard ${
+  className={`dashCard highlightActive ${
     highlightMode === "active" ? "activeDash" : ""
   }`}
   onClick={() =>
@@ -432,7 +432,6 @@ return (
       prev === "active" ? null : "active"
     )
   }
-  
 >
   <div className="dashPulseDot" />
   <div className="dashLabel">Active orders</div>
@@ -1165,7 +1164,7 @@ thead th {
   height: 8px;
   border-radius: 50%;
 
-  background: #3b82f6;
+  background: #33e1ee;
 
   box-shadow: 0 0 0 rgba(59,130,246,0.6);
   animation: pulse 1.6s infinite;
@@ -1204,6 +1203,13 @@ thead th {
     box-shadow: 0 0 0 0 rgba(59,130,246,0);
   }
 }
+
+
+.highlightActive {
+  border-left: 4px solid #33e1ee; /* žltá */
+}
+
+
       `}</style>
     </div>
   );
