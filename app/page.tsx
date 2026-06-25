@@ -211,6 +211,7 @@ const filePath = `${orderId}/${type}/${baseId}_V${version}.pdf`;
 };
 
 const isOverdue = (date: string | null | undefined, status: string) => {
+  
   if (!date) return false;
   if (status === "Delivered") return false;
 
@@ -516,6 +517,54 @@ return (
     </div>
   </div>
 
+
+  
+{/* AVERAGE LEAD TIME (WORKING DAYS) */}
+<div className="dashCard highlightBlue">
+  <div className="dashLabel">Avg LT (work days)</div>
+  <div className="dashValue">
+    {(() => {
+      const delivered = sortedOrders.filter(
+        (o) =>
+          o.status === "Delivered" &&
+          o.ordered_at &&
+          o.delivered_at
+      );
+
+      if (delivered.length === 0) return "-";
+
+      const isWorkDay = (d: Date) => {
+        const day = d.getDay();
+        return day !== 0 && day !== 6; // nedeľa + sobota
+      };
+
+      const countWorkDays = (start: Date, end: Date) => {
+        let count = 0;
+        const current = new Date(start);
+
+        while (current <= end) {
+          if (isWorkDay(current)) count++;
+          current.setDate(current.getDate() + 1);
+        }
+
+        return count;
+      };
+
+      const totalDays = delivered.reduce((sum, o) => {
+        const start = new Date(o.ordered_at);
+        const end = new Date(o.delivered_at);
+
+        return sum + countWorkDays(start, end);
+      }, 0);
+
+      const avg = totalDays / delivered.length;
+
+      return `${avg % 1 === 0 ? avg.toFixed(0) : avg.toFixed(1)} days`;
+    })()}
+  </div>
+</div>
+
+
 </div>
   
 
@@ -671,25 +720,34 @@ return (
     </label>
 
     {(() => {
-      const file = getFiles(o.order_id)
-        .filter((f) => f.type === t.key)
-        .slice(-1)[0];
+  const files = getFiles(o.order_id).filter(
+    (f) => f.type === t.key
+  );
 
-      if (!file) return null;
+  if (files.length === 0) return null;
 
-      return (
-        <a
-          className="uploadBtn"
-          href={file.file_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          download
-        >
-          Download
-          
-        </a>
-      );
-    })()}
+  return (
+    <details className="downloadMenu">
+      <summary className="uploadBtn">
+        Download ▼
+      </summary>
+
+      <div className="downloadList">
+        {[...files].reverse().map((file, index) => (
+          <a
+            key={file.id ?? index}
+            href={file.file_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="downloadItem"
+          >
+            Version {files.length - index}
+          </a>
+        ))}
+      </div>
+    </details>
+  );
+})()}
     
   </div>
 </div>
@@ -1207,6 +1265,81 @@ thead th {
 
 .highlightActive {
   border-left: 4px solid #33e1ee; /* žltá */
+}
+.downloadMenu {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* odstráni default šípku details (ak ju ešte používaš) */
+.downloadMenu summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.downloadMenu summary::-webkit-details-marker {
+  display: none;
+}
+
+/* DROPDOWN */
+.downloadList {
+  position: absolute;
+
+  /* 👉 desktop: otvára sa vpravo */
+  top: 0;
+  left: 100%;
+  margin-left: 8px;
+
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+
+  min-width: 160px;
+
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+
+  overflow: hidden;
+
+  z-index: 99999;
+
+  animation: fadeIn 0.12s ease-out;
+}
+
+/* ITEMY */
+.downloadItem {
+  display: block;
+  padding: 10px 12px;
+  color: #111827;
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.downloadItem:hover {
+  background: #f3f4f6;
+}
+
+/* jemná animácia */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* 📱 MOBILE fallback */
+@media (max-width: 768px) {
+  .downloadList {
+    left: auto;
+    right: 0;
+    top: 100%;
+    margin-left: 0;
+    margin-top: 8px;
+  }
 }
 
 
