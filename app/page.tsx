@@ -1456,9 +1456,11 @@ thead th {
   color: #111827;
   box-shadow: 0 2px 10px rgba(0,0,0,0.08);
 }
+  
 
       `}</style>
     </div>
   );
 }
+
 

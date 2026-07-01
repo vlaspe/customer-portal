@@ -16,78 +16,185 @@ export default function Login() {
       password,
     });
 
-    if (error) {
-      alert(error.message);
-    } else {
-      router.push("/");
-    }
+    if (error) return alert(error.message);
+    router.push("/");
   };
 
   return (
     <>
       <main className="bg">
-        <div className="card">
-          <h1>Customer portal</h1>
-          <p className="subtitle">Sign in to your account</p>
 
-          <input
-            placeholder="Email address"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
+{/* LEFT IMAGE SIDE */}
+<div className="left">
 
-          <input
-            placeholder="Password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-
-          <button onClick={signIn}>Sign in</button>
-          <div className="logoWrap">
   <img
-    src="https://indevo.sk/logo.jpg"
-    alt="Indevo logo"
-    className="logo"
+    src="https://indevo.sk/welcome.jpg"
+    alt="preview"
   />
+
+  {/* overlay text */}
+<div className="leftOverlay">
+
+ <h2>
+  Build faster.<br />
+  Scale from prototype to production.
+</h2>
+
+
 </div>
+
+</div>
+
+
+        {/* RIGHT LOGIN SIDE */}
+        <div className="right">
+
+          <div className="panel">
+
+            <div className="logoWrap">
+              <img src="https://indevo.sk/logo.jpg" alt="logo" />
+            </div>
+
+            <h1></h1>
+            <p className="sub">Welcome back</p>
+
+            <input
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+
+            <input
+              placeholder="Password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+
+            <button onClick={signIn}>Sign in</button>
+
+            <div className="hint">
+              Secure access to your platform
+            </div>
+
+          </div>
+
         </div>
-        
+
       </main>
 
       <style jsx>{`
         .bg {
-          min-height: 100vh;
+          height: 100vh;
+          display: flex;
+          font-family: ui-sans-serif, system-ui;
+          background: #ffffff;
+        }
+
+       /* LEFT SIDE */
+.left {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.left img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+
+  position: relative;
+  z-index: 1;
+}
+
+/* overlay layer */
+.leftOverlay {
+  position: absolute;
+  inset: 0;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  padding: 70px;
+  color: white;
+
+  z-index: 2;
+}
+
+/* dark gradient behind text */
+.leftOverlay::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.65),
+    rgba(0, 0, 0, 0.25),
+    rgba(0, 0, 0, 0)
+  );
+
+  z-index: 1;
+}
+
+/* text above gradient */
+.leftOverlay h2,
+.leftOverlay p {
+  position: relative;
+  z-index: 2;
+}
+
+/* optional: better typography */
+.leftOverlay h2 {
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.8px;
+  margin: 0;
+}
+
+.leftOverlay p {
+  margin-top: 16px;
+  font-size: 16px;
+  max-width: 480px;
+  opacity: 0.9;
+  line-height: 1.6;
+}
+
+        /* RIGHT SIDE */
+        .right {
+          flex: 1;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-family: sans-serif;
-
-          /* 🔥 jemný profesionálny background */
-          background: #f6f7fb;
-          padding: 20px;
+          background: #ffffff;
+          padding: 40px;
         }
 
-        .card {
-          width: 360px;
-          padding: 32px;
-          border-radius: 14px;
+        .panel {
+          width: 100%;
+          max-width: 360px;
+        }
 
-          background: white;
-          border: 1px solid #e8e8ee;
+        .logoWrap {
+          display: flex;
+          justify-content: center;
+          margin-bottom: 18px;
+        }
 
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
-
-          text-align: left;
+        .logoWrap img {
+          height: 40px;
+          object-fit: contain;
         }
 
         h1 {
-          font-size: 22px;
-          margin-bottom: 6px;
+          font-size: 24px;
+          margin: 0;
           color: #111827;
         }
 
-        .subtitle {
+        .sub {
           font-size: 14px;
           color: #6b7280;
           margin-bottom: 20px;
@@ -96,113 +203,51 @@ export default function Login() {
         input {
           width: 100%;
           padding: 12px 14px;
-          margin-bottom: 12px;
-
+          margin-bottom: 10px;
           border-radius: 10px;
           border: 1px solid #e5e7eb;
-
-          font-size: 14px;
           outline: none;
-
-          transition: all 0.2s ease;
-          background: #fafafa;
+          font-size: 14px;
+          color: #111827;
         }
 
         input:focus {
-          border-color: #c7c9d1;
-          background: white;
+          border-color: #111827;
         }
 
         button {
           width: 100%;
-          padding: 12px 14px;
-
+          padding: 12px;
           border-radius: 10px;
           border: none;
-
           background: #111827;
           color: white;
-
-          font-weight: 500;
           cursor: pointer;
-
-          transition: 0.2s ease;
+          margin-top: 6px;
         }
 
-        button:hover {
-          background: #1f2937;
+        .hint {
+          margin-top: 14px;
+          font-size: 11px;
+          color: #9ca3af;
+          text-align: center;
         }
 
-        button:active {
-          transform: scale(0.98);
-        }
-
-        /* 📱 MOBILE */
+        /* MOBILE */
         @media (max-width: 768px) {
-          .card {
-            width: 100%;
-            max-width: 340px;
-            padding: 24px;
+          .bg {
+            flex-direction: column;
           }
 
-          h1 {
-            font-size: 20px;
+          .left {
+            height: 35vh;
+          }
+
+          .right {
+            height: 65vh;
           }
         }
-          /* 🔥 fix pre dark mode / system override */
-input {
-  color: #111827;          /* text v inpute */
-  -webkit-text-fill-color: #111827; /* iOS autofill fix */
-  caret-color: #111827;    /* kurzor */
-}
-
-/* 🔥 fix pre autofill (Chrome / Safari) */
-input:-webkit-autofill {
-  -webkit-box-shadow: 0 0 0px 1000px #fafafa inset;
-  -webkit-text-fill-color: #111827;
-  transition: background-color 9999s ease-in-out 0s;
-}
-
-/* 🔥 dark mode override (ak by browser prepol farby) */
-@media (prefers-color-scheme: dark) {
-  .bg {
-    background: #f6f7fb; /* drží light theme aj v dark mode */
-  }
-
-  .card {
-    background: white;
-    border-color: #e8e8ee;
-  }
-
-  input {
-    background: #fafafa;
-    color: #111827;
-  }
-
-  input::placeholder {
-    color: #9ca3af;
-  }
-    
-}
-
-.logoWrap {
-  display: flex;
-  justify-content: center;
-  margin-top: 18px;
-}
-
-.logo {
-  height: 44px;
-  width: auto;
-  object-fit: contain;
-  opacity: 0.95;
-}
-
-
       `}</style>
     </>
   );
 }
-
-
-
