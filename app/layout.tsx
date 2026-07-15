@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Indevo Customer Portal",
+  title: "INDEVO | Customer Portal",
   description: "Customer order tracking portal",
 };
 
